@@ -4,6 +4,35 @@ Conceptual notes on the AutoIt language, collected while reading this project.
 These are the things that trip up newcomers, especially people coming from
 Python/JS/C.
 
+## Contents
+
+- **Language basics**
+  - [What AutoIt is](#what-autoit-is)
+  - [Blocks need explicit terminators](#blocks-need-explicit-terminators)
+  - [Operators that bite](#operators-that-bite)
+  - [Variables and scope](#variables-and-scope)
+  - ["Declarations" can run code](#declarations-can-run-code)
+  - [Arrays](#arrays)
+  - [No classes or modules](#no-classes-or-modules)
+  - [Error handling: check `@error` immediately](#error-handling-check-error-immediately)
+- **Program structure**
+  - [The standard library (UDFs) and `#include`](#the-standard-library-udfs-and-include)
+  - [How a multi-file script runs (the two phases)](#how-a-multi-file-script-runs-the-two-phases)
+- **GUI**
+  - [GUI model](#gui-model)
+    - [The basic building block: one control = one line](#the-basic-building-block-one-control--one-line)
+    - [How it differs from web/DOM](#how-it-differs-from-webdom-important-if-you-know-web-dev)
+    - [How a control "belongs to" the window](#how-a-control-belongs-to-the-window-the-implicit-current-target)
+    - [Tabs are visibility tags, not containers](#tabs-are-visibility-tags-not-containers)
+    - [Build invisibly, then reveal in one shot](#build-invisibly-then-reveal-in-one-shot)
+    - [Dummy controls: an ID with no appearance](#dummy-controls-an-id-with-no-appearance)
+    - [The message loop (how clicks become actions)](#the-message-loop-how-clicks-become-actions)
+- **Build & tooling**
+  - [FileInstall: files embedded at compile time](#fileinstall-files-embedded-at-compile-time)
+  - [Tooling](#tooling)
+
+---
+
 ## What AutoIt is
 
 - A Windows scripting language, originally for GUI automation, now a general
@@ -130,15 +159,88 @@ Consequences:
 
 ## GUI model
 
-- **Build phase:** create controls (`GUICtrlCreateButton`, `...Checkbox`,
-  `...ListView`, ...). Each returns a numeric **control ID** you store.
+### The basic building block: one control = one line
+
+A **control** is any single visible thing: a button, checkbox, text box, label.
+You make one by calling a `GUICtrlCreate...` function, which also returns a numeric
+**control ID** you store so you can refer back to it later:
+
+```autoit
+$idBtnCure = GUICtrlCreateButton("Patch", 251, 520, 94, 32)
+;            ^make a button        ^label  ^x   ^y  ^w  ^h
+```
+
+The four numbers are **absolute position + size in pixels** (x from left, y from
+top, width, height). The returned ID (`$idBtnCure`) is like a deli ticket number:
+it's how every other part of the program says "this button" — both to **configure
+it** and to **listen for clicks on it** (see the message loop below).
+
+Shorthand: passing **`-1`** as the control ID to a follow-up call means "the control
+I just created", so you don't repeat the variable:
+
+```autoit
+GUICtrlSetState(-1, $GUI_DISABLE)   ; disable the button we just made
+```
+
+### How it differs from web/DOM (important if you know web dev)
+
+There is **one outer box — the window** (`GUICreate(...)`), like the browser window
+/ `<body>`. But unlike the DOM:
+
+- **No nesting tree.** Every control is a **direct child of the one window**; there
+  are no container boxes holding children.
+- **No auto-layout.** There is no flow/flex/grid. You hand-place **every** control
+  at absolute x/y pixels. The web equivalent is `position:absolute` on *everything*,
+  all siblings of `<body>`.
+- **Nothing reflows.** Move or remove one control and its neighbors don't shift —
+  each is pinned to its own pixels. (This is why GUI-build code is long and tedious:
+  someone placed every pixel by hand.)
+
+### How a control "belongs to" the window: the implicit "current" target
+
+You never wire a control to a parent (no `appendChild`). Instead AutoIt keeps an
+invisible pointer to **"the window/tab I'm currently adding to"**:
+
+- `GUICreate(...)` makes a window **and sets it as current**.
+- Every later `GUICtrlCreate...` auto-attaches to **whatever is current**.
+
+### Tabs are visibility tags, not containers
+
+A tabbed window uses the same "current" trick. `GUICtrlCreateTabItem("Main")` opens
+a tab (now current); controls made after it get **tagged** "show only on Main";
+`GUICtrlCreateTabItem("")` closes the set. The controls are **still flat children of
+the window at absolute coords** — switching tabs just hides one tag-set and shows
+another. It's visibility-switching, not DOM-style containment.
+
+### Build invisibly, then reveal in one shot
+
+Every `GUICtrlCreate...` builds into the window **while it's hidden**. A single call:
+
+```autoit
+GUISetState(@SW_SHOW)
+```
+
+is what finally draws the finished window on screen — so the user never sees a
+half-built UI flicker into place.
+
+### Dummy controls: an ID with no appearance
+
+`GUICtrlCreateDummy()` makes a control with **no visible form** but a real ID. It's
+a placeholder so the event loop can still reference an `$id...` (and have a `Case`
+for it) even when there's no actual button — common for removed/unsurfaced features.
+
+### The message loop (how clicks become actions)
+
+- **Build phase:** all the `GUICtrlCreate...` calls above (typically wrapped in a
+  `MainGui()`-style function), ending with `GUISetState(@SW_SHOW)`.
 - **Message loop:** `While 1 ... WEnd` calling `GUIGetMsg()`, which returns the
   ID of whatever was clicked (or a special constant like `$GUI_EVENT_CLOSE`, or
   `0` if nothing happened). A `Select`/`Case` (or `Switch`) then dispatches to the
-  matching handler. The loop does not block, so periodic/polling work can sit at
-  the top of it.
+  matching handler. This is the other half of the IDs: build phase **creates** each
+  `$idBtn...`; the loop **reacts** to it. The loop does not block, so periodic/
+  polling work can sit at the top of it.
 - `GUIRegisterMsg($WM_..., "FuncName")` registers a lower-level Windows-message
-  callback used alongside the loop.
+  callback used alongside the loop (e.g. `WM_NOTIFY` for listview checkbox clicks).
 
 ## FileInstall: files embedded at compile time
 

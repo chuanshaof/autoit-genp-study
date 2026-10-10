@@ -62,6 +62,15 @@ Func _SetState($aIds, $iState)
 	Next
 EndFunc
 
+; =====================================================================
+; MainGui()  -  BUILD the main window ONCE (construction, not behavior).
+;   Runs top-to-bottom. Pattern repeated per tab:
+;     open a tab  GUICtrlCreateTabItem("Name") -> create its controls
+;     -> close it GUICtrlCreateTabItem("")     -> next tab.
+;   All controls are built while the window is HIDDEN; GUISetState(@SW_SHOW)
+;   near the end reveals the finished window in one shot. The $idBtn... IDs
+;   captured here are exactly what the event loop in main.au3 switches on.
+; =====================================================================
 Func MainGui()
 	$MyhGUI = GUICreate($g_AppWndTitle, 595, 610, -1, -1, BitOR($WS_MINIMIZEBOX, $GUI_SS_DEFAULT_GUI))
 	_MsgBoxCenterInit()
@@ -69,6 +78,7 @@ Func MainGui()
 	$hTab = GUICtrlCreateTab(0, 1, 597, 610, $TCS_FIXEDWIDTH)
 	_SendMessage(GUICtrlGetHandle($hTab), 0x1329, 0, 74)
 
+	; ----- TAB 1: Main ----- file list, Search/Patch/Restore/Modified buttons, progress bars
 	$hMainTab = GUICtrlCreateTabItem("Main")
 	$idListview = GUICtrlCreateListView("", 10, 35, 575, 385)
 	GUICtrlSetResizing(-1, $GUI_DOCKAUTO)
@@ -166,6 +176,7 @@ Func MainGui()
 
 	GUICtrlCreateTabItem("")
 
+	; ----- TAB 2: Options ----- checkboxes initialised from the $b... config globals; Save Options
 	$hOptionsTab = GUICtrlCreateTabItem("Options")
 
 	GUICtrlCreateGroup("First Run Options", 5, 35, 585, 90)
@@ -276,6 +287,7 @@ Func MainGui()
 
 	GUICtrlCreateTabItem("")
 
+	; ----- TAB 3: WinTrust ----- toggle WinTrust / reg key, set trust path (-> DevOverride.au3)
 	Local $hWinTrustTab = GUICtrlCreateTabItem("WinTrust")
 
 	$sWinTrustText = "WINTRUST"
@@ -316,6 +328,7 @@ Func MainGui()
 
 	GUICtrlCreateTabItem("")
 
+	; ----- TAB 4: Hosts ----- update/edit/clean/restore/schedule the hosts file (-> Hosts.au3)
 	Local $hHostsTab = GUICtrlCreateTabItem("Hosts")
 
 	$sEditHostsText = "HOSTS"
@@ -357,6 +370,7 @@ Func MainGui()
 
 	GUICtrlCreateTabItem("")
 
+	; ----- TAB 5: Proxy ----- mitmproxy setup/targeting/start-stop/log/remove (-> Proxy.au3)
 	Local $hProxyTab = GUICtrlCreateTabItem("Proxy")
 
 	GUICtrlCreateLabel("PROXY", (595 - 580) / 2, 50, 580, 20, $SS_CENTER)
@@ -402,6 +416,7 @@ Func MainGui()
 
 	GUICtrlCreateTabItem("")
 
+	; ----- TAB 6: Firewall ----- add/toggle/remove NGL firewall rules (-> Firewall.au3)
 	Local $hFirewallTab = GUICtrlCreateTabItem("Firewall")
 
 	$sCleanFirewallText = "FIREWALL"
@@ -440,6 +455,7 @@ Func MainGui()
 
 	GUICtrlCreateTabItem("")
 
+	; ----- TAB 7: AGS ----- remove/dummy/restore Adobe Genuine Service (-> Firewall.au3)
 	$hPopupTab = GUICtrlCreateTabItem("AGS")
 
 	$sRemoveAGSText = "GENUINE SERVICES"
@@ -475,6 +491,7 @@ Func MainGui()
 
 	GUICtrlCreateTabItem("")
 
+	; ----- TAB 8: Log ----- two read-only text panes: $idMemo (status) and $idLog (activity)
 	$hLogTab = GUICtrlCreateTabItem("Log")
 	$idMemo = GUICtrlCreateEdit("", 10, 35, 575, 472, BitOR($ES_READONLY, $ES_CENTER, $WS_DISABLED))
 	GUICtrlSetResizing(-1, $GUI_DOCKVCENTER)
@@ -500,7 +517,10 @@ Func MainGui()
 
 	MemoWrite(@CRLF & "Path" & @CRLF & "---" & @CRLF & $MyDefPath & @CRLF & "---" & @CRLF & "Waiting for user action.")
 
+	; --- Everything above was built into a HIDDEN window; this REVEALS it. ---
 	GUISetState(@SW_SHOW)
+	; --- Tail wiring: bundle control IDs into groups (for bulk enable/disable
+	;     via _SetState), register the low-level WM_ handlers, snapshot options. ---
 	Global $g_aOptCtrls[16] = [ _
 			$idFindACC, $idOnlyAFolders, $idShowBetaApps, $idEnableGood1, _
 			$idShowLaunchBar, $idEnableNGLFirewall, $idOlderVerDl, $idResetOnSave, $idClearLicCaches, $idTriggerCaptureLaunch, _
@@ -534,6 +554,11 @@ Func MainGui()
 	_RefreshProxyStatus()
 EndFunc
 
+; =====================================================================
+; SECONDARY WINDOWS & DISGUISED-NAME HELPERS
+;   _MsgBoxCBTProc centers message boxes over the main window.
+;   The next three have deliberately misleading names (see GenP-Notes D).
+; =====================================================================
 Func _MsgBoxCBTProc($nCode, $wParam, $lParam)
 	If $nCode = 5 Then
 		Local $aCls = DllCall("user32.dll", "int", "GetClassName", "hwnd", $wParam, "wstr", "", "int", 256)
@@ -548,6 +573,7 @@ Func _MsgBoxCBTProc($nCode, $wParam, $lParam)
 	Return $aRet[0]
 EndFunc
 
+; [MISNAMED] Not asset precaching - this builds the WELCOME / about window.
 Func _PrecacheDisplayAssets()
 	Local $iGuiWidth = 580
 	Local $hFontCacheLayoutContext = GUICreate(_GetCpTranslation(3), $iGuiWidth, 315, -1, -1, BitOR(0x80000000, 0x00800000))
@@ -623,6 +649,7 @@ Func _PrecacheDisplayAssets()
 	WEnd
 EndFunc
 
+; [MISNAMED] Not text metrics - this shows the "unofficial source" WARNING dialog.
 Func _RenderTextMetricBuffer()
 	Local $hNoticeGui = GUICreate(_GetCpTranslation(4), 430, 140, -1, -1, 0x00C00000)
 	GUICtrlCreateIcon("user32.dll", 3, 20, 25, 32, 32)
@@ -644,6 +671,7 @@ Func _RenderTextMetricBuffer()
 	WEnd
 EndFunc
 
+; [MISNAMED] Not localization - this is the Caesar-cipher STRING DECODER.
 Func _GetCpTranslation($iLocaleIndex)
 	Local $sObfuscated = ""
 
@@ -673,6 +701,11 @@ Func _GetCpTranslation($iLocaleIndex)
 	Return Deloader($sObfuscated)
 EndFunc
 
+; =====================================================================
+; THE LIST: fill & filter
+;   Renders the global DATA ($g_aAllFiles, $g_mCheckedState) into the
+;   $idListview control. The list on screen is just a VIEW of those arrays.
+; =====================================================================
 Func FillListViewWithInfo()
 	$g_bStatusScreenReady = False
 	_GUICtrlListView_DeleteAllItems($g_idListview)
@@ -889,6 +922,9 @@ Func _ApplyVisibilityFilter($bInitial = False)
 	_RedrawWindow($idListview)
 EndFunc
 
+; =====================================================================
+; LOG / MEMO panes & PROGRESS bars  (update-in-place; no new windows)
+; =====================================================================
 Func MemoWrite($sMessage)
 	GUICtrlSetData($idMemo, $sMessage)
 EndFunc
@@ -946,6 +982,12 @@ Func _SubProgressWrite($iPct)
 	If $idSubProgress > 0 Then GUICtrlSetData($idSubProgress, $iPct)
 EndFunc
 
+; =====================================================================
+; OPTIONS & UI-STATE bookkeeping
+;   Dirty-tracking (did the user change an option?) and bulk enable/disable
+;   of control groups during scans/patches. (_RefreshSearch, below, is the
+;   search orchestrator that drives the scan.)
+; =====================================================================
 Func _SnapshotOptions()
 	If Not IsObj($g_mOptionsSnapshot) Then $g_mOptionsSnapshot = ObjCreate("Scripting.Dictionary")
 	$g_mOptionsSnapshot.RemoveAll()
@@ -1157,6 +1199,9 @@ Func _RefreshSearch()
 	UpdateUIState()
 EndFunc
 
+; =====================================================================
+; The animated "Scanning..." STATUS SCREEN (overlay shown during a search)
+; =====================================================================
 Func _ShowStatusScreen($sMode, $sDir = "")
 	If Not $g_bStatusScreenReady Then
 		_PrepStatusScreenLayout()
@@ -1330,6 +1375,9 @@ Func _UpdateStatusDetail($sDetail)
 	_ShowStatusScreen("scanning", $sDetail)
 EndFunc
 
+; =====================================================================
+; Folder / file PICKER dialogs
+; =====================================================================
 Func _BrowseForFolderDialog($sTitle, $hParent = 0)
 	$g_hBFFParent = $hParent
 	Local $tTitle = DllStructCreate("wchar[" & StringLen($sTitle) + 1 & "]")
@@ -1381,6 +1429,9 @@ Func MyFileOpenDialog()
 
 EndFunc
 
+; =====================================================================
+; LISTVIEW interaction (row clicks, collapse/expand groups)
+; =====================================================================
 Func _ListView_LeftClick($hListView, $lParam)
 	Local $tInfo = DllStructCreate($tagNMITEMACTIVATE, $lParam)
 	Local $iIndex = DllStructGetData($tInfo, "Index")
@@ -1469,6 +1520,9 @@ Func _Expand_All_Click()
 	EndIf
 EndFunc
 
+; =====================================================================
+; Tiny WinAPI wrappers
+; =====================================================================
 Func _SendMessageL($hWnd, $Msg, $wParam, $lParam)
 	Return DllCall("user32.dll", "LRESULT", "SendMessageW", "HWND", GUICtrlGetHandle($hWnd), "UINT", $Msg, "WPARAM", $wParam, "LPARAM", $lParam)[0]
 EndFunc
@@ -1477,6 +1531,12 @@ Func _RedrawWindow($hWnd)
 	DllCall("user32.dll", "bool", "RedrawWindow", "hwnd", GUICtrlGetHandle($hWnd), "ptr", 0, "ptr", 0, "uint", 0x0100)
 EndFunc
 
+; =====================================================================
+; Low-level WINDOWS MESSAGE handlers - the SECOND input channel.
+;   Catch what the event loop's GUIGetMsg can't: listview checkbox/row
+;   clicks (WM_NOTIFY) and hyperlink-label clicks (hL_WM_COMMAND).
+;   Registered in MainGui() via GUIRegisterMsg.
+; =====================================================================
 Func WM_COMMAND($hWnd, $Msg, $wParam, $lParam)
 	If BitAND($wParam, 0x0000FFFF) = $idButtonStop Then $fInterrupt = 1
 	Return $GUI_RUNDEFMSG
@@ -1598,6 +1658,9 @@ Func hL_WM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
 	Return WM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
 EndFunc
 
+; =====================================================================
+; On-demand POP-UP windows (each spawns its OWN new window)
+; =====================================================================
 Func ShowInfoPopup($sText)
 	Local $aMainPos = WinGetPos($MyhGUI)
 	If @error Then
