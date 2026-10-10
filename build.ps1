@@ -19,7 +19,14 @@ if (-not (Test-Path $aut2exe)) { throw "Aut2exe.exe not found - is AutoIt instal
 
 # --- 1) list the FileInstall resources the build embeds, and check they exist ---
 Write-Host "== FileInstall resources (needed at COMPILE time) ==" -ForegroundColor Cyan
-$deps = Select-String -Path "$root\main.au3","$root\src\*.au3" -Pattern 'FileInstall\(\s*"([^"]+)"' -AllMatches |
+# Only scan files the build actually uses: main.au3 + its UNCOMMENTED
+# #include "src\..." lines. This mirrors what the compiler sees, so an excised
+# module (its #include commented out, e.g. [PROXY-REMOVED]) no longer triggers
+# false "missing resource" errors for FileInstall lines sitting in dead code.
+$scanFiles = @("$root\main.au3")
+Select-String -Path "$root\main.au3" -Pattern '^\s*#include\s+"([^"]+)"' -AllMatches |
+        ForEach-Object { $_.Matches } | ForEach-Object { $scanFiles += (Join-Path $root $_.Groups[1].Value) }
+$deps = Select-String -Path $scanFiles -Pattern 'FileInstall\(\s*"([^"]+)"' -AllMatches |
         ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
 $missing = @()
 foreach ($d in $deps) {

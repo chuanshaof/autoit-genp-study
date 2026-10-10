@@ -1,6 +1,6 @@
 ; =====================================================================
 ; Proxy.au3  -  Application module.
-; Functions (26):
+; Functions (23):   [3 _GenP_WM_* handlers moved to Ui.au3 - they are main-window handlers]
 ;   - _IsMitmproxyInstalled
 ;   - _IsMitmproxyRunning
 ;   - _IsMitmproxyCertTrusted
@@ -23,9 +23,6 @@
 ;   - _StyleLogRange
 ;   - _AppendToLogWindow
 ;   - _PollMitmproxyLog
-;   - _GenP_WM_CLOSE
-;   - _GenP_WM_SIZE
-;   - _GenP_WM_ACTIVATE
 ;   - _TriggerOneOffCaptureAndLaunch
 ; =====================================================================
 
@@ -498,48 +495,6 @@ Func _PollMitmproxyLog()
 	If $sOut <> "" Then _AppendToLogWindow($sOut)
 	Local $sErr = StderrRead($g_iMitmproxyPID)
 	If $sErr <> "" Then _AppendToLogWindow($sErr)
-EndFunc
-
-Func _GenP_WM_CLOSE($hWnd, $iMsg, $wParam, $lParam)
-	If $g_bMitmLogWindowExists And $hWnd = $g_hMitmLogWin Then
-		GUISetState(@SW_HIDE, $g_hMitmLogWin)
-		Return 0
-	EndIf
-	If FileExists($g_sOVD_EXE) Then FileDelete($g_sOVD_EXE)
-	If FileExists($g_sOVD_DIR) Then DirRemove($g_sOVD_DIR, 1)
-	If $g_hAppsBar <> 0 Then
-		Local $aBarPos = WinGetPos($g_hAppsBar)
-		If IsArray($aBarPos) Then
-			IniWrite($sINIPath, "Options", "LaunchBarX", $aBarPos[0])
-			IniWrite($sINIPath, "Options", "LaunchBarY", $aBarPos[1])
-		EndIf
-	EndIf
-	Return $GUI_RUNDEFMSG
-EndFunc
-
-Func _GenP_WM_SIZE($hWnd, $iMsg, $wParam, $lParam)
-	If $hWnd = $MyhGUI And $wParam = 0 Then
-		_RefreshLog()
-	EndIf
-	If $hWnd = $MyhGUI And $wParam = 1 Then
-		If $g_hAppsBar <> 0 Then GUISetState(@SW_SHOWNOACTIVATE, $g_hAppsBar)
-	EndIf
-	If $g_bMitmLogWindowExists And $hWnd = $g_hMitmLogWin Then
-		Local $iNewW = BitAND($lParam, 0xFFFF)
-		Local $iNewH = BitShift($lParam, 16)
-		If $iNewW > 40 And $iNewH > 60 Then
-			WinMove($g_hMitmRichEdit, "", 10, 46, $iNewW - 20, $iNewH - 60)
-		EndIf
-	EndIf
-	Return $GUI_RUNDEFMSG
-EndFunc
-
-Func _GenP_WM_ACTIVATE($hWnd, $iMsg, $wParam, $lParam)
-	#forceref $iMsg, $lParam
-	If $hWnd = $MyhGUI And BitAND($wParam, 0xFFFF) > 0 Then
-		_WinAPI_RedrawWindow($hWnd, 0, 0, BitOR(0x0001, 0x0004, 0x0100, 0x0400))
-	EndIf
-	Return $GUI_RUNDEFMSG
 EndFunc
 
 Func _TriggerOneOffCaptureAndLaunch()

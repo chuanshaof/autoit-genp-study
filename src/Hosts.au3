@@ -598,6 +598,12 @@ Func _RefreshAutoUpdateDialogStatus($idLbl, $idBtnRunNow, $idBtnRemove)
 	EndSwitch
 EndFunc
 
+#cs === [PROXY-REMOVED] _SilentHostsInjector: hosts-file helper whose ONLY callers were the
+;   proxy feature (the log window "Add hosts" button in Ui.au3 + two Proxy.au3 calls).
+;   With proxy excised it is unreachable, so the whole function is disabled. It is
+;   correctly FILED here (it writes the hosts file) - NOT a mis-file - just orphaned now.
+;   Remove this #cs and its matching #ce to restore (only meaningful if proxy is restored,
+;   since it calls _AppendToLogWindow, a Proxy.au3 function).
 Func _SilentHostsInjector($sDomain)
 	$sDomain = StringLower(StringStripWS($sDomain, 3))
 	If $sDomain = "" Then Return SetError(2, 0, False)
@@ -647,6 +653,7 @@ Func _SilentHostsInjector($sDomain)
 
 	Return True
 EndFunc
+#ce === [PROXY-REMOVED] end _SilentHostsInjector ===
 
 Func UpdateHostsFile()
 	If Not _RequireAdmin("modify the Windows hosts file") Then Return

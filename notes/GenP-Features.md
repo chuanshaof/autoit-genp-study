@@ -120,6 +120,36 @@ unlock in order as setup progresses.
 | Open Log | Open the live proxy activity log window. |
 | Remove | Uninstall mitmproxy and clean everything up. |
 
+### The whole feature is optional (and self-contained)
+
+`mitmdump.exe` and its Python script are **embedded inside `GenP.exe` at build time**
+(via `FileInstall`). They are **not written to disk until you use the feature** — they
+sit dormant inside the exe otherwise.
+
+- The **only** thing that unpacks them is the **Setup** button
+  ([`_SetupMitmproxy`](../src/Proxy.au3#L58)), which `FileInstall`s them to
+  `%ProgramData%\GenP\mitmproxy\`. If you never click Setup, mitmdump never touches your
+  disk, never runs, and no certificate is installed.
+- **Remove** (or the Final Adobe Clean Check, below) deletes those files again, so the
+  machine goes back to having nothing on disk.
+
+### It's not only driven from this tab
+
+All the mitmdump launch/stop logic lives in `src\Proxy.au3`, but it's reached from a few
+places — worth knowing so a reference to it elsewhere isn't mistaken for an unrelated
+feature:
+
+| Entry point | Tab | Effect on mitmdump |
+|-------------|-----|--------------------|
+| Setup / Targeting / Start-Stop / Open Log / Remove | **Proxy** | the five buttons above (Setup is the only one that unpacks). |
+| "Trigger one-off capture and launch on save" checkbox | **Options** | **Starts** the proxy for a single capture session, then unchecks itself. Requires Setup to have been run first — it does *not* unpack on its own. |
+| "Final Adobe Clean Check" | **Options** | **Tears it down** — stops the proxy, removes the cert, deletes the files (same as Remove). |
+| "Add to Hosts" button in the proxy log window | **Proxy** (log window) | **Stops** the proxy first (a domain can't be blackholed in the hosts file while the proxy is still intercepting it), then writes the hosts entry. |
+| Startup | — | read-only check only, to enable/disable the Proxy buttons at launch. |
+
+So mitmdump is **never used unless you go through one of these**, and it only ever runs
+after an explicit **Setup**.
+
 ---
 
 ## 6. Firewall

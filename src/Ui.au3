@@ -248,8 +248,10 @@ Func MainGui()
 	GUICtrlSetLimit($idCustomDomainListInput, 255)
 	GUICtrlSetResizing($idCustomDomainListInput, $GUI_DOCKWIDTH)
 
+#cs === [PROXY-REMOVED] "trigger one-off capture and launch" checkbox (a proxy-capture control) ===
 	Global $idTriggerCaptureLaunch = GUICtrlCreateCheckbox("Trigger one-off capture and launch on save", 15, 397, 400, 25, BitOR($BS_AUTOCHECKBOX, $BS_LEFT))
 	GUICtrlSetState($idTriggerCaptureLaunch, $GUI_UNCHECKED)
+#ce === [PROXY-REMOVED] end trigger-capture checkbox ===
 
 	GUICtrlCreateGroup("", -99, -99, 1, 1)
 
@@ -370,6 +372,7 @@ Func MainGui()
 
 	GUICtrlCreateTabItem("")
 
+#cs === [PROXY-REMOVED] Proxy tab (MainGui) - delete this #cs and its matching #ce to restore ===
 	; ----- TAB 5: Proxy ----- mitmproxy setup/targeting/start-stop/log/remove (-> Proxy.au3)
 	Local $hProxyTab = GUICtrlCreateTabItem("Proxy")
 
@@ -415,6 +418,7 @@ Func MainGui()
 	GUICtrlSetCursor($g_idHyperlinkProxy, 0)
 
 	GUICtrlCreateTabItem("")
+#ce === [PROXY-REMOVED] end Proxy tab ===
 
 	; ----- TAB 6: Firewall ----- add/toggle/remove NGL firewall rules (-> Firewall.au3)
 	Local $hFirewallTab = GUICtrlCreateTabItem("Firewall")
@@ -521,9 +525,10 @@ Func MainGui()
 	GUISetState(@SW_SHOW)
 	; --- Tail wiring: bundle control IDs into groups (for bulk enable/disable
 	;     via _SetState), register the low-level WM_ handlers, snapshot options. ---
-	Global $g_aOptCtrls[16] = [ _
+	; [PROXY-REMOVED] $g_aOptCtrls was [16] and included $idTriggerCaptureLaunch; now [15].
+	Global $g_aOptCtrls[15] = [ _
 			$idFindACC, $idOnlyAFolders, $idShowBetaApps, $idEnableGood1, _
-			$idShowLaunchBar, $idEnableNGLFirewall, $idOlderVerDl, $idResetOnSave, $idClearLicCaches, $idTriggerCaptureLaunch, _
+			$idShowLaunchBar, $idEnableNGLFirewall, $idOlderVerDl, $idResetOnSave, $idClearLicCaches, _
 			$idReconcileStates, $idCreateStates, $idUseCustomDefault, _
 			$idBtnSetCustomPath, $idCustomDomainListInput, $idFinalCleanCheck]
 	Global $g_aToolCtrls[20] = [ _
@@ -551,7 +556,7 @@ Func MainGui()
 		GUICtrlSetState($idBtnRestoreAGS, $GUI_ENABLE)
 	EndIf
 
-	_RefreshProxyStatus()
+	; [PROXY-REMOVED] _RefreshProxyStatus()   ; proxy status label no longer exists
 EndFunc
 
 ; =====================================================================
@@ -1007,7 +1012,7 @@ Func _SnapshotOptions()
 	$g_mOptionsSnapshot.Item("UseCustomDefault") = _IsChecked($idUseCustomDefault)
 	$g_mOptionsSnapshot.Item("PendingCustomPath") = GUICtrlRead($idBtnSetCustomPath)
 	$g_mOptionsSnapshot.Item("HostsURL") = StringStripWS(GUICtrlRead($idCustomDomainListInput), 3)
-	$g_mOptionsSnapshot.Item("TriggerCapture") = _IsChecked($idTriggerCaptureLaunch)
+	; [PROXY-REMOVED] $g_mOptionsSnapshot.Item("TriggerCapture") = _IsChecked($idTriggerCaptureLaunch)
 	$g_bOptionsDirty = False
 	If $idBtnSaveOptions > 0 Then GUICtrlSetState($idBtnSaveOptions, $GUI_DISABLE)
 	If $idOptionsReminder > 0 Then GUICtrlSetState($idOptionsReminder, $GUI_HIDE)
@@ -1051,7 +1056,7 @@ Func CheckOptionsChanged()
 	If _IsChecked($idUseCustomDefault) <> $g_mOptionsSnapshot.Item("UseCustomDefault") Then $bChanged = True
 	If GUICtrlRead($idBtnSetCustomPath) <> $g_mOptionsSnapshot.Item("PendingCustomPath") Then $bChanged = True
 	If StringStripWS(GUICtrlRead($idCustomDomainListInput), 3) <> $g_mOptionsSnapshot.Item("HostsURL") Then $bChanged = True
-	If _IsChecked($idTriggerCaptureLaunch) <> $g_mOptionsSnapshot.Item("TriggerCapture") Then $bChanged = True
+	; [PROXY-REMOVED] If _IsChecked($idTriggerCaptureLaunch) <> $g_mOptionsSnapshot.Item("TriggerCapture") Then $bChanged = True
 
 	$g_bOptionsDirty = $bChanged
 	If $idBtnSaveOptions > 0 Then GUICtrlSetState($idBtnSaveOptions, $bChanged ? $GUI_ENABLE : $GUI_DISABLE)
@@ -1610,6 +1615,7 @@ Func hL_WM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
 		EndIf
 	EndIf
 
+#cs === [PROXY-REMOVED] proxy log-window button handler (the log window is never created now) ===
 	If $g_bMitmLogWindowExists And $hWnd = $g_hMitmLogWin Then
 		If $iIDFrom = $g_idBtnLogClose Then
 			GUISetState(@SW_HIDE, $g_hMitmLogWin)
@@ -1655,7 +1661,59 @@ Func hL_WM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
 		EndIf
 	EndIf
 
+#ce === [PROXY-REMOVED] end proxy log-window handler ===
+
 	Return WM_COMMAND($hWnd, $iMsg, $wParam, $lParam)
+EndFunc
+
+; =====================================================================
+; Main-window WM_ handlers (RELOCATED here from Proxy.au3 during [PROXY-REMOVED]).
+;   These are NOT proxy code - they handle the MAIN window: OVD temp-file
+;   cleanup + launch-bar save on close, log refresh / apps-bar on resize,
+;   redraw on activate. Their small mitm-log-window branches are dead now
+;   (guard $g_bMitmLogWindowExists is always False) and call no Proxy.au3
+;   funcs. Registered by name in MainGui via GUIRegisterMsg($WM_CLOSE/SIZE/ACTIVATE).
+; =====================================================================
+Func _GenP_WM_CLOSE($hWnd, $iMsg, $wParam, $lParam)
+	If $g_bMitmLogWindowExists And $hWnd = $g_hMitmLogWin Then
+		GUISetState(@SW_HIDE, $g_hMitmLogWin)
+		Return 0
+	EndIf
+	If FileExists($g_sOVD_EXE) Then FileDelete($g_sOVD_EXE)
+	If FileExists($g_sOVD_DIR) Then DirRemove($g_sOVD_DIR, 1)
+	If $g_hAppsBar <> 0 Then
+		Local $aBarPos = WinGetPos($g_hAppsBar)
+		If IsArray($aBarPos) Then
+			IniWrite($sINIPath, "Options", "LaunchBarX", $aBarPos[0])
+			IniWrite($sINIPath, "Options", "LaunchBarY", $aBarPos[1])
+		EndIf
+	EndIf
+	Return $GUI_RUNDEFMSG
+EndFunc
+
+Func _GenP_WM_SIZE($hWnd, $iMsg, $wParam, $lParam)
+	If $hWnd = $MyhGUI And $wParam = 0 Then
+		_RefreshLog()
+	EndIf
+	If $hWnd = $MyhGUI And $wParam = 1 Then
+		If $g_hAppsBar <> 0 Then GUISetState(@SW_SHOWNOACTIVATE, $g_hAppsBar)
+	EndIf
+	If $g_bMitmLogWindowExists And $hWnd = $g_hMitmLogWin Then
+		Local $iNewW = BitAND($lParam, 0xFFFF)
+		Local $iNewH = BitShift($lParam, 16)
+		If $iNewW > 40 And $iNewH > 60 Then
+			WinMove($g_hMitmRichEdit, "", 10, 46, $iNewW - 20, $iNewH - 60)
+		EndIf
+	EndIf
+	Return $GUI_RUNDEFMSG
+EndFunc
+
+Func _GenP_WM_ACTIVATE($hWnd, $iMsg, $wParam, $lParam)
+	#forceref $iMsg, $lParam
+	If $hWnd = $MyhGUI And BitAND($wParam, 0xFFFF) > 0 Then
+		_WinAPI_RedrawWindow($hWnd, 0, 0, BitOR(0x0001, 0x0004, 0x0100, 0x0400))
+	EndIf
+	Return $GUI_RUNDEFMSG
 EndFunc
 
 ; =====================================================================

@@ -266,6 +266,18 @@ Func _RunFinalCleanCheck()
 		$sReport &= "Firewall rules:   Windows Firewall service unavailable - skipped." & @CRLF
 	EndIf
 
+#cs === [PROXY-REMOVED] Final-Clean-Check proxy/mitmproxy step ===
+; WHY THIS IS OFF:
+;   This block was the TEARDOWN half of the proxy feature. If mitmproxy was
+;   installed it called _RemoveMitmproxy() (in the now-excised Proxy.au3) to stop
+;   mitmdump, uninstall its certificate, and delete its files.
+;   Removed for two reasons:
+;     1) NECESSARY - _RemoveMitmproxy / _IsMitmproxyInstalled / _DisableWindowsProxy
+;        no longer exist (Proxy.au3 is excluded from the build).
+;     2) REDUNDANT - with the Proxy tab gone there is no longer any way to INSTALL
+;        the proxy, so Final Clean Check has nothing to tear down.
+;   EDGE CASE: a proxy installed by an EARLIER GenP build is no longer cleaned up
+;   by this build - the user would have to remove mitmdump + its certificate manually.
 	GUICtrlSetData($idStepLabel, "Checking proxy and mitmproxy...")
 	GUICtrlSetData($idStepBar, 20)
 	Local $bMitmInstalled = _IsMitmproxyInstalled()
@@ -285,6 +297,7 @@ Func _RunFinalCleanCheck()
 				"Proxy / mitmproxy: not configured  -  all clear." & @CRLF & @CRLF & _
 				"Click OK to continue.")
 	EndIf
+#ce === [PROXY-REMOVED] end Final-Clean-Check proxy step ===
 
 	GUICtrlSetData($idStepLabel, "Removing scheduled tasks and log files...")
 	GUICtrlSetData($idStepBar, 33)

@@ -391,12 +391,14 @@ If FileExists(@WindowsDir & "\System32\drivers\etc\hosts.bak") Then
 	$bHostsbakExists = True
 EndIf
 
+#cs === [PROXY-REMOVED] startup enable block - delete this #cs and its matching #ce to restore ===
 If _IsMitmproxyInstalled() Then
 	GUICtrlSetState($idBtnProxyTargeting, $GUI_ENABLE)
 	GUICtrlSetState($idBtnProxyStartStop, $GUI_ENABLE)
 	GUICtrlSetState($idBtnProxyOpenLog, $GUI_ENABLE)
 	GUICtrlSetState($idBtnProxyRemove, $GUI_ENABLE)
 EndIf
+#ce === [PROXY-REMOVED] end startup enable block ===
 
 If StringInStr(FileRead(@WindowsDir & "\System32\drivers\etc\hosts"), "# START - Adobe Blocklist") Then
 	GUICtrlSetState($idBtnCleanHosts, $GUI_ENABLE)
@@ -1225,11 +1227,13 @@ While 1
 			EndIf
 			CheckOptionsChanged()
 
+#cs === [PROXY-REMOVED] "trigger capture" option case ===
 		Case $idMsg = $idTriggerCaptureLaunch
 			CheckOptionsChanged()
+#ce === [PROXY-REMOVED] end "trigger capture" case ===
 
 		Case $idMsg = $idBtnSaveOptions
-			Local $bShouldTrigger    = _IsChecked($idTriggerCaptureLaunch)
+			; [PROXY-REMOVED] Local $bShouldTrigger    = _IsChecked($idTriggerCaptureLaunch)
 			Local $bLaunchOlderVerDl = _IsChecked($idOlderVerDl)
 			SaveOptionsToConfig()
 
@@ -1285,11 +1289,13 @@ While 1
 				EndIf
 			EndIf
 
+#cs === [PROXY-REMOVED] Save-Options "trigger one-off capture" block ===
 			If $bShouldTrigger Then
 				_TriggerOneOffCaptureAndLaunch()
 				GUICtrlSetState($idTriggerCaptureLaunch, $GUI_UNCHECKED)
 				_SnapshotOptions()
 			EndIf
+#ce === [PROXY-REMOVED] end Save-Options trigger block ===
 
 			If Number($bEnableGood1) Then
 				If Not _IsGudeCleanupInstalled() And IniRead($sINIPath, "Options", "GudeDismissed", "0") <> "1" Then
@@ -1353,6 +1359,7 @@ While 1
 		Case $idMsg = $idBtnAutoUpdateHosts
 			_ShowHostsAutoUpdateDialog()
 
+#cs === [PROXY-REMOVED] event-loop cases - delete this #cs and its matching #ce to restore ===
 		Case $idMsg = $idBtnProxySetup
 			Local $bOk = _SetupMitmproxy()
 			If $bOk Then
@@ -1447,6 +1454,7 @@ While 1
 				EndIf
 			EndIf
 			_RefreshProxyStatus()
+#ce === [PROXY-REMOVED] end event-loop cases ===
 
 		Case $idMsg = $idBtnCreateFW
 			MsgBox(64, "Firewall Rules", "Adobe applications will be scanned and rules applied." & @CRLF & "Windows Firewall users will be prompted to select apps." & @CRLF & "Third-party users check the Log tab for paths to add.")
@@ -1499,6 +1507,6 @@ WEnd
 #include "src\Patch.au3"
 #include "src\Firewall.au3"
 #include "src\Hosts.au3"
-#include "src\Proxy.au3"
+; [PROXY-REMOVED] #include "src\Proxy.au3"   ; entire proxy module excluded from the build
 #include "src\DevOverride.au3"
 #include "src\Util.au3"
