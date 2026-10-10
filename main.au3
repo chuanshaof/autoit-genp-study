@@ -1,5 +1,19 @@
+; =====================================================================
+; main.au3 - GenP ENTRY POINT (compiles to GenP.exe / GenP-v4.2.1.exe).
+;   There is NO main.exe and NO main() function. AutoIt begins at the
+;   first runnable line (AutoItSetOption, further down) and runs
+;   top-to-bottom until it parks in the MAIN EVENT LOOP near the bottom.
+;   The banners below mark the startup phases, in the order they run.
+;   Companion deep-dives: notes\GenP-Notes.md + notes\AutoIt-Notes.md.
+; =====================================================================
+
+; --- Runtime directives: #RequireAdmin forces a UAC elevation prompt at
+;     launch (deny = program won't run); #NoTrayIcon hides the tray icon. ---
 #NoTrayIcon
 #RequireAdmin
+
+; --- Build-time directives (AutoIt3Wrapper): read by the COMPILER only,
+;     ignored at runtime. They set exe name, icon, version, Au3Stripper. ---
 #Region
 #AutoIt3Wrapper_Icon=Skull.ico
 #AutoIt3Wrapper_Outfile_x64=GenP-v4.2.1.exe
@@ -18,6 +32,9 @@
 #AutoIt3Wrapper_UseX64=y
 #EndRegion
 
+; --- Standard library (26 UDFs). The compiler PASTES these in at build
+;     time; they are not read from disk at runtime, and live outside this
+;     project (in the AutoIt install's Include\ folder). ---
 #include <Array.au3>
 #include <ButtonConstants.au3>
 #include <Crypt.au3>
@@ -45,6 +62,13 @@
 #include <WinAPISysWin.au3>
 #include <WinAPITheme.au3>
 
+; =====================================================================
+; GLOBAL DECLARATIONS  (AutoItSetOption below is the first runnable line)
+;   WARNING: at the top level, `Global $x = SomeCall()` EXECUTES SomeCall()
+;   right now, in sequence - this is NOT an inert wall of declarations.
+;   ObjCreate(), _Singleton(), IniRead() etc. all run as they're reached,
+;   so the ORDER of these lines matters. (See AutoIt-Notes "run code".)
+; =====================================================================
 AutoItSetOption("GUICloseOnESC", 0)
 
 Global $g_Version = "4.2.1"
@@ -83,6 +107,7 @@ Global Const $g_iLogTabIndex = 7
 Global $g_idStatusTitle = -1, $g_idStatusDetail = -1
 Global $g_sCurrentSearchPath = ""
 
+; --- Single-instance guard: if another GenP is already running, Exit now. ---
 If _Singleton($g_AppWndTitle, 1) = 0 Then
 	Exit
 EndIf
@@ -104,6 +129,15 @@ Global $g_aToolCtrls, $g_aOptCtrls, $g_aCheckCtrls, $idTriggerCaptureLaunch
 Global $idBtnProxySetup, $idBtnProxyTargeting, $idBtnProxyStartStop, $idBtnProxyOpenLog, $idBtnProxyRemove
 Global $g_idLblProxyStatus = 0
 
+; --- Feature path CONSTANTS. KEY POINT (answers "is @AppDataCommonDir
+;     permanent / only a compile-time thing?"): @-macros like
+;     @AppDataCommonDir / @TempDir are resolved at RUNTIME, on the machine
+;     running the exe - NOT baked in at build time. @AppDataCommonDir is
+;     that PC's common AppData, normally C:\ProgramData (so, effectively
+;     permanent, and portable across machines). These lines are PURE
+;     string-building: they DEFINE paths, they do NOT create any folder.
+;     The folder is made later, on demand (e.g. DirCreate in src\Proxy.au3
+;     only when the Proxy feature is actually used). ---
 #Au3Stripper_Ignore_Variables=$g_sMITM_DIR,$g_sMITM_EXE,$g_sMITM_SCRIPT,$g_sMITM_LOG,$g_sMITM_PORT,$g_sMITM_PROXY,$g_sMITM_CERT_NAME,$g_iMitmproxyPID,$g_sOVD_DIR,$g_sOVD_EXE
 Global Const $g_sMITM_DIR = @AppDataCommonDir & "\GenP\mitmproxy"
 Global Const $g_sMITM_EXE = $g_sMITM_DIR & "\mitmdump.exe"
@@ -194,6 +228,14 @@ Global Const $g_sWT_SxS = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Current
 Global Const $g_sWT_WT64 = "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography\Wintrust\Config"
 Global Const $g_sWT_WT32 = "HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Microsoft\Cryptography\Wintrust\Config"
 
+; =====================================================================
+; CONFIG.INI: ensure it exists, then LOAD + VALIDATE it.
+;   This is the program's DATA: target file names, byte-patterns, options.
+;   IniRead COPIES values from the on-disk .ini into in-memory variables
+;   (the file stays on disk; a few keys get written back below). It's plain
+;   text, not bytecode - .ini (not .txt) so the built-in IniRead/IniWrite
+;   can parse [Section]/key=value for free. Order matters (these run).
+; =====================================================================
 Global $sINIPath = @ScriptDir & "\config.ini"
 If Not FileExists($sINIPath) Then
 	FileInstall("config.ini", @ScriptDir & "\config.ini")
@@ -313,20 +355,36 @@ For $i = 1 To UBound($aSpecialFiles) - 1
 Next
 Global $g_aSignature = "r~~z}D99""sus8nl%o|:8myw9qoxz7q sno}9"
 
+; --- Hidden CLI mode: launched as `GenP.exe -updatehosts` it does that one
+;     job and exits, with NO GUI. This is the entry the scheduled hosts
+;     auto-update task calls. A normal double-click skips this block. ---
 If $CmdLine[0] = 1 And $CmdLine[1] = "-updatehosts" Then
 	UpdateHostsFile()
 	Exit
 EndIf
 
+; --- Self-hash INTEGRITY CHECK (deliberately misnamed - it has nothing to
+;     do with fonts). Reads the exe's own last 80 bytes; if the official
+;     self-hash trailer is missing/wrong it shows the "not from official
+;     sources" warning. Cosmetic; see GenP-Notes section D. ---
 _InitializeFontLayoutEngine()
 
 
 _CheckPatchStatesVersion()
 
+; =====================================================================
+; BUILD THE GUI
+;   GUIRegisterMsg routes raw Windows WM_COMMAND messages to a handler.
+;   MainGui() (in src\Ui.au3) builds the whole window and fills in every
+;   $idBtn... control-ID global that the event loop below switches on.
+; =====================================================================
 GUIRegisterMsg($WM_COMMAND, "WM_COMMAND")
 
 MainGui()
 
+; --- Post-build startup: enable/disable buttons to match the CURRENT system
+;     state (is hosts.bak present? is mitmproxy installed? is the hosts file
+;     already edited?) and show one-time notices. Runs once, before the loop. ---
 Local $bHostsbakExists = False
 If FileExists(@WindowsDir & "\System32\drivers\etc\hosts.bak") Then
 	GUICtrlSetState($idBtnRestoreHosts, $GUI_ENABLE)
@@ -348,6 +406,15 @@ _ShowUpdateNoticeIfNeeded()
 
 If $bShowLaunchBar Then _RefreshAppsToolbar()
 
+; =====================================================================
+; MAIN EVENT LOOP ("the listener") - the program lives here until closed.
+;   Top of each pass does periodic polling (window title, hosts.bak,
+;   options-changed). GUIGetMsg() returns the clicked control's ID, and
+;   the big Select/Case dispatches it. Most cases are 1-3 lines calling
+;   into src\; but the heavy ones (SEARCH / PATCH / RESTORE / MODIFIED)
+;   are written INLINE below - that is why this loop is so long. Each is
+;   tagged with an [INLINE HANDLER] banner.
+; =====================================================================
 While 1
 
 	If $g_iDisplayOrientationScale <> 1 And WinGetTitle($MyhGUI) <> $g_AppWndTitle Then
@@ -425,6 +492,8 @@ While 1
 			_SetState($g_aOptCtrls, $GUI_ENABLE)
 			GUICtrlSetState($idBtnSaveOptions, $GUI_ENABLE)
 
+		; --- [INLINE HANDLER] SEARCH: scan the Adobe folder(s) for the
+		;     [TargetFiles] names (RecursiveFileSearch), then fill the listview. ---
 		Case $idMsg = $idButtonSearch
 			$fInterrupt = 0
 			$g_bIsPatching = True
@@ -588,6 +657,11 @@ While 1
 			$fInterrupt = 0
 			_RefreshSearch()
 
+		; --- [INLINE HANDLER] PATCH / CURE: the core action, and the biggest
+		;     block in this file. Runs gate checks (target folder, config,
+		;     stop-Adobe prompt, Elements-2026 grouping, NGL firewall), then for
+		;     each CHECKED file applies the config byte-patterns via
+		;     MyGlobalPatternSearch / MyGlobalPatternPatch, keeping a .bak. ---
 		Case $idMsg = $idBtnCure
 			Local $sCureTgtWhy = _TargetFolderReady($MyDefPath)
 			If $sCureTgtWhy <> "" Then
@@ -883,6 +957,9 @@ While 1
 
 			_FinalisePatchRun()
 
+		; --- [INLINE HANDLER] MODIFIED: rescan + verify, then filter the list
+		;     down to files that still differ from baseline (the "what still
+		;     needs patching" view). Patching from here drains that queue. ---
 		Case $idMsg = $idBtnModified
 			$fInterrupt = 0
 			$g_bIsPatching = True
@@ -921,6 +998,8 @@ While 1
 				UpdateUIState()
 			EndIf
 
+		; --- [INLINE HANDLER] RESTORE: for each checked file, put back its .bak
+		;     backup (RestoreFile), undoing a patch; reports files still in use. ---
 		Case $idMsg = $idBtnRestore
 			Local $sRestTgtWhy = _TargetFolderReady($MyDefPath)
 			If $sRestTgtWhy <> "" Then

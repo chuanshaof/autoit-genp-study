@@ -43,6 +43,13 @@ There are no braces. Every block is opened and closed by keyword:
 - Every variable starts with `$`: `$count`. Macros start with `@`: `@CRLF`,
   `@ScriptDir`, `@error`, `@ProgramFilesDir`, `@WindowsDir`, `@AppDataCommonDir`,
   `@TempDir`.
+- **Path macros are resolved at *runtime*, on the machine running the exe** — not
+  baked in at compile time. So `@AppDataCommonDir` becomes *that* PC's common
+  AppData (normally `C:\ProgramData`), `@TempDir` *that* user's temp folder, etc.
+  This is why a constant like `@AppDataCommonDir & "\GenP\mitmproxy"` is portable:
+  it recomputes the correct location per machine on each launch. Also note
+  assigning such a constant is **pure string-building with no disk side effect** —
+  it defines a path; it does not create the folder.
 - Declare with `Global` (whole script), `Local` (inside a function),
   `Const` (can't change), `Enum` (auto-numbered constants).
 - **No block scope.** A `Local` declared inside an `If` lives for the whole
@@ -140,6 +147,17 @@ time, to be written to `dest` at run time. The **source must be a literal string
 (the compiler has to find it while building). To find a script's build-time
 resource dependencies, search for every `FileInstall(` and take the first
 argument.
+
+Two-phase, and usually **lazy**: the bytes ride *inside* the exe from build time,
+but extraction to disk only happens when that `FileInstall` line actually executes.
+The common pattern guards it so it runs on demand, not at launch:
+
+```autoit
+If Not FileExists($g_sMITM_EXE) Then FileInstall("resources\...\mitmdump.exe", $g_sMITM_EXE, 1)
+```
+
+So a bundled resource for a feature the user never touches never lands on their
+disk, even though it's always carried in the exe. (The `1` third arg = overwrite.)
 
 ## Tooling
 
