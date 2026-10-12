@@ -1207,8 +1207,10 @@ While 1
 		Case $idMsg = $idShowLaunchBar
 			CheckOptionsChanged()
 
+#cs === [OVD-REMOVED] "Older versions download" option case ===
 		Case $idMsg = $idOlderVerDl
 			CheckOptionsChanged()
+#ce === [OVD-REMOVED] end option case ===
 
 		Case $idMsg = $idReconcileStates
 			If _IsChecked($idReconcileStates) Then GUICtrlSetState($idCreateStates, $GUI_UNCHECKED)
@@ -1234,9 +1236,10 @@ While 1
 
 		Case $idMsg = $idBtnSaveOptions
 			; [PROXY-REMOVED] Local $bShouldTrigger    = _IsChecked($idTriggerCaptureLaunch)
-			Local $bLaunchOlderVerDl = _IsChecked($idOlderVerDl)
+			; [OVD-REMOVED] Local $bLaunchOlderVerDl = _IsChecked($idOlderVerDl)
 			SaveOptionsToConfig()
 
+#cs === [OVD-REMOVED] Older-versions-download launch block: extracts the bundled main.exe to %TEMP%\GenP_OVD, configures it via env vars (GENP_INSTALL_DIR / GENP_DOWNLOADS_DIR), and runs it in a console. ===
 			If $bLaunchOlderVerDl Then
 				GUICtrlSetState($idOlderVerDl, $GUI_UNCHECKED)
 				_SnapshotOptions()
@@ -1288,6 +1291,7 @@ While 1
 					EndIf
 				EndIf
 			EndIf
+#ce === [OVD-REMOVED] end Older-versions-download launch block ===
 
 #cs === [PROXY-REMOVED] Save-Options "trigger one-off capture" block ===
 			If $bShouldTrigger Then

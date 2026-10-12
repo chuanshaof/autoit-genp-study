@@ -8,6 +8,7 @@ pick it back up. For language concepts, see `AutoIt-Notes.md`.
 - [TL;DR](#tldr)
 - **A. Orientation**
   - [What this project is](#what-this-project-is)
+  - [GenP is mostly an orchestrator](#genp-is-mostly-an-orchestrator)
   - [Which source this is built from](#which-source-this-is-built-from)
   - [Glossary / key terms](#glossary--key-terms)
   - [Safety net](#safety-net)
@@ -65,6 +66,28 @@ readability.** Not improving or extending the licensing-bypass behavior.
 An AutoIt GUI program (the "GenP" family) that patches installed Adobe apps so they
 run without a valid license, plus side tools for firewall rules, hosts-file blocking,
 a local proxy, and Windows signature-check (WinTrust/DevOverride) registry changes.
+
+## GenP is mostly an orchestrator
+
+GenP's own AutoIt code is the **GUI + coordination layer**. Much of the actual work is
+**delegated to external programs and tools** that GenP bundles (via `FileInstall`) or
+calls, and configures through environment variables / command lines. So a lot of "the
+work" lives *outside* the `.au3` source:
+
+| External helper | Kind / language | Job | How GenP drives it |
+|-----------------|-----------------|-----|--------------------|
+| `mitmdump.exe` (mitmproxy) | bundled **Python** binary | intercept Adobe licensing traffic | bundled + run (Proxy feature) |
+| `main.exe` (Older Versions Downloader, MP7909) | separate binary, **likely bundled Python** | download old Adobe installers | bundled + launched in a console; configured via `GENP_INSTALL_DIR` / `GENP_DOWNLOADS_DIR` env vars |
+| `UpdateHostsFile.ps1`, `RemoveGudeLogs.ps1` | **PowerShell** | scheduled-task work | bundled + registered as scheduled tasks |
+| `wintrust.dll` | patched **DLL** | signature-check bypass | bundled + placed |
+| `schtasks`, `certutil`, `netsh`, `ipconfig`, `upx.exe` | Windows CLI / tools | tasks, certs, proxy, DNS, unpacking | `Run` / `RunWait` |
+
+Why this shape: AutoIt is strong for a Windows **GUI and automation glue**, weak for things
+like an HTTPS proxy or a complex downloader — so those are purpose-built programs in other
+languages, and GenP just orchestrates them. (This is also why removing the Proxy / OVD
+features dropped big *binaries* but little *code* — see
+[`AutoIt-Notes.md` → Payload size ≠ code size].) When hunting for "where does X actually
+happen?", check the `Run`/`RunWait`/`FileInstall` calls, not only the `.au3` functions.
 
 ## Which source this is built from
 

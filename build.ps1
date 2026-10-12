@@ -26,8 +26,23 @@ Write-Host "== FileInstall resources (needed at COMPILE time) ==" -ForegroundCol
 $scanFiles = @("$root\main.au3")
 Select-String -Path "$root\main.au3" -Pattern '^\s*#include\s+"([^"]+)"' -AllMatches |
         ForEach-Object { $_.Matches } | ForEach-Object { $scanFiles += (Join-Path $root $_.Groups[1].Value) }
-$deps = Select-String -Path $scanFiles -Pattern 'FileInstall\(\s*"([^"]+)"' -AllMatches |
-        ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+# Scan those files for FileInstall sources, but skip AutoIt block comments (#cs..#ce)
+# and ';' line comments - so resources for commented-out features aren't demanded.
+# Together with the #include filter above, this makes the pre-check mirror the compiler
+# (which honours both #include reachability and comments).
+$deps = @()
+foreach ($f in $scanFiles) {
+    if (-not (Test-Path $f)) { continue }
+    $inBlock = $false
+    foreach ($line in (Get-Content -LiteralPath $f)) {
+        if ($line -match '^\s*#(cs|comments-start)\b') { $inBlock = $true; continue }
+        if ($line -match '^\s*#(ce|comments-end)\b')   { $inBlock = $false; continue }
+        if ($inBlock -or $line -match '^\s*;') { continue }
+        $m = [regex]::Match($line, 'FileInstall\(\s*"([^"]+)"')
+        if ($m.Success) { $deps += $m.Groups[1].Value }
+    }
+}
+$deps = $deps | Sort-Object -Unique
 $missing = @()
 foreach ($d in $deps) {
     $path = Join-Path $root $d

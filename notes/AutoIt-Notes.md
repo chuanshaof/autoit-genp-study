@@ -19,6 +19,7 @@ Python/JS/C.
   - [The standard library (UDFs) and `#include`](#the-standard-library-udfs-and-include)
   - [How a multi-file script runs (the two phases)](#how-a-multi-file-script-runs-the-two-phases)
   - [No nested functions](#no-nested-functions)
+  - [AutoIt as glue (shelling out)](#autoit-as-glue-shelling-out)
 - **GUI**
   - [GUI model](#gui-model)
     - [The basic building block: one control = one line](#the-basic-building-block-one-control--one-line)
@@ -171,6 +172,25 @@ Consequences when refactoring:
 - There's no language-level "private to this function" signal — only the **call graph**
   tells you a helper is used in just one place. (Use a function-name search for every
   caller; don't trust naming or file location.)
+
+## AutoIt as glue (shelling out)
+
+AutoIt is often used as a **coordination layer**, not the place heavy work happens. It's
+great for a Windows GUI + automation, and it delegates the rest to other programs. Two
+idioms to recognise:
+
+- **`Run` / `RunWait` a separate program or Windows CLI tool** (`schtasks`, `certutil`,
+  `powershell`, a bundled `.exe`) and let *it* do the job. `RunWait` blocks until it
+  finishes; `Run` fires and continues.
+- **Configure a child process via environment variables:** `EnvSet(...)` *before* `Run(...)`,
+  and the child inherits them (a child process inherits the parent's environment). This is
+  how you hand settings to a program you didn't write and have no API into — no shared
+  memory, no function calls, just inherited env vars (and the child's working directory,
+  which is `Run`'s 2nd argument).
+
+Consequence: **"where's the logic?" may be another process in another language**, reached
+by a one-line `Run`. When tracing behaviour, follow the `Run`/`RunWait` calls (and any
+`FileInstall`'d `.exe`/`.ps1`), not just the `.au3` functions.
 
 ## GUI model
 

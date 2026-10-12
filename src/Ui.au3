@@ -235,8 +235,10 @@ Func MainGui()
 	If $bEnableNGLFirewall = 1 Then GUICtrlSetState($idEnableNGLFirewall, $GUI_CHECKED)
 	GUICtrlSetResizing(-1, $GUI_DOCKAUTO)
 
+#cs === [OVD-REMOVED] "Older versions download" checkbox - launched the bundled main.exe downloader ===
 	$idOlderVerDl = GUICtrlCreateCheckbox("Older versions download", 300, 278, 275, 25, BitOR($BS_AUTOCHECKBOX, $BS_LEFT))
 	GUICtrlSetState($idOlderVerDl, $GUI_UNCHECKED)
+#ce === [OVD-REMOVED] end checkbox ===
 	GUICtrlSetResizing(-1, $GUI_DOCKAUTO)
 
 	GUICtrlCreateGroup("", -99, -99, 1, 1)
@@ -528,9 +530,10 @@ Func MainGui()
 	; --- Tail wiring: bundle control IDs into groups (for bulk enable/disable
 	;     via _SetState), register the low-level WM_ handlers, snapshot options. ---
 	; [PROXY-REMOVED] $g_aOptCtrls was [16] and included $idTriggerCaptureLaunch; now [15].
-	Global $g_aOptCtrls[15] = [ _
+	; [OVD-REMOVED] dropped $idOlderVerDl; array is now [14] (was [15]).
+	Global $g_aOptCtrls[14] = [ _
 			$idFindACC, $idOnlyAFolders, $idShowBetaApps, $idEnableGood1, _
-			$idShowLaunchBar, $idEnableNGLFirewall, $idOlderVerDl, $idResetOnSave, $idClearLicCaches, _
+			$idShowLaunchBar, $idEnableNGLFirewall, $idResetOnSave, $idClearLicCaches, _
 			$idReconcileStates, $idCreateStates, $idUseCustomDefault, _
 			$idBtnSetCustomPath, $idCustomDomainListInput, $idFinalCleanCheck]
 	Global $g_aToolCtrls[20] = [ _
@@ -1007,7 +1010,7 @@ Func _SnapshotOptions()
 	$g_mOptionsSnapshot.Item("ClearLicCaches") = _IsChecked($idClearLicCaches)
 	$g_mOptionsSnapshot.Item("EnableNGLFirewall") = _IsChecked($idEnableNGLFirewall)
 	$g_mOptionsSnapshot.Item("ShowLaunchBar") = _IsChecked($idShowLaunchBar)
-	$g_mOptionsSnapshot.Item("OlderVerDl") = _IsChecked($idOlderVerDl)
+	; [OVD-REMOVED] $g_mOptionsSnapshot.Item("OlderVerDl") = _IsChecked($idOlderVerDl)
 	$g_mOptionsSnapshot.Item("FinalCleanCheck") = _IsChecked($idFinalCleanCheck)
 	$g_mOptionsSnapshot.Item("ReconcileStates") = _IsChecked($idReconcileStates)
 	$g_mOptionsSnapshot.Item("CreateStates") = _IsChecked($idCreateStates)
@@ -1051,7 +1054,7 @@ Func CheckOptionsChanged()
 	If _IsChecked($idClearLicCaches) <> $g_mOptionsSnapshot.Item("ClearLicCaches") Then $bChanged = True
 	If _IsChecked($idEnableNGLFirewall) <> $g_mOptionsSnapshot.Item("EnableNGLFirewall") Then $bChanged = True
 	If _IsChecked($idShowLaunchBar) <> $g_mOptionsSnapshot.Item("ShowLaunchBar") Then $bChanged = True
-	If _IsChecked($idOlderVerDl) <> $g_mOptionsSnapshot.Item("OlderVerDl") Then $bChanged = True
+	; [OVD-REMOVED] If _IsChecked($idOlderVerDl) <> $g_mOptionsSnapshot.Item("OlderVerDl") Then $bChanged = True
 	If _IsChecked($idFinalCleanCheck) <> $g_mOptionsSnapshot.Item("FinalCleanCheck") Then $bChanged = True
 	If _IsChecked($idReconcileStates) <> $g_mOptionsSnapshot.Item("ReconcileStates") Then $bChanged = True
 	If _IsChecked($idCreateStates) <> $g_mOptionsSnapshot.Item("CreateStates") Then $bChanged = True
@@ -1681,8 +1684,8 @@ Func _GenP_WM_CLOSE($hWnd, $iMsg, $wParam, $lParam)
 		GUISetState(@SW_HIDE, $g_hMitmLogWin)
 		Return 0
 	EndIf
-	If FileExists($g_sOVD_EXE) Then FileDelete($g_sOVD_EXE)
-	If FileExists($g_sOVD_DIR) Then DirRemove($g_sOVD_DIR, 1)
+	; [OVD-REMOVED] If FileExists($g_sOVD_EXE) Then FileDelete($g_sOVD_EXE)
+	; [OVD-REMOVED] If FileExists($g_sOVD_DIR) Then DirRemove($g_sOVD_DIR, 1)
 	If $g_hAppsBar <> 0 Then
 		Local $aBarPos = WinGetPos($g_hAppsBar)
 		If IsArray($aBarPos) Then

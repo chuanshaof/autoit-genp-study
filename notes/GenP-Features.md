@@ -69,7 +69,7 @@ appears when something is unsaved). Grouped into boxes:
 - *Show Beta apps* — include Adobe Beta apps in results.
 - *Enable Good patch* — apply the "good" pattern variant.
 - *Show app launch toolbar* — show the floating quick-launch bar for patched apps.
-- *Older versions download* — enable older-version download behavior.
+- *Older versions download* — **[REMOVED — `[OVD-REMOVED]`]** enable older-version download behavior. *(Launched the bundled `main.exe` downloader.)*
 - *Clear license caches after patching* — wipe Adobe license caches when a patch finishes.
 - *Enable NGL Firewall rule* — auto-apply the NGL network-block rule as part of patching.
 
@@ -217,6 +217,7 @@ piece and reverts it.
 |-------------------------|---------|-------|
 | `[PROXY-REMOVED]` | the whole **Proxy** tab + feature (mitmproxy), incl. the Options *trigger-capture* checkbox | `main.au3`, `Ui.au3`, `Patch.au3`, `Hosts.au3`, `Proxy.au3` (module disconnected), `build.ps1` |
 | `[SCHEDULE-HOSTS-REMOVED]` | the Hosts tab's **Schedule updates** button + its dialog | `Ui.au3`, `main.au3`, `Hosts.au3` |
+| `[OVD-REMOVED]` | the Options **Older versions download** feature (bundled `main.exe` downloader) | `Ui.au3`, `main.au3`; `resources\mitmproxy\main.exe` deleted |
 
 **Mechanics:** multi-line blocks use AutoIt `#cs … #ce`; single lines use `;`. To revert
 a feature: search its tag, delete the `#cs`/`#ce` marker lines, and re-enable any
@@ -224,9 +225,11 @@ a feature: search its tag, delete the `#cs`/`#ce` marker lines, and re-enable an
 `Proxy.au3` into `Ui.au3`) because they are main-window handlers, not proxy — that move is
 permanent and stays on revert.
 
-**Resource side effect:** with Proxy off, `resources\mitmproxy\mitmdump.exe` and
-`mitmproxy_genuine_fullguard.py` are no longer embedded (safe to delete). Keep
-`resources\mitmproxy\main.exe` — it's the Older Versions Downloader, a different feature.
+**Resource side effect:** all three files under `resources\mitmproxy\` are now gone —
+`mitmdump.exe` + `mitmproxy_genuine_fullguard.py` (Proxy) and `main.exe` (the Older
+Versions Downloader) — since none is embedded any more. The folder is empty. Because
+those `FileInstall`s now sit inside `#cs … #ce` blocks (or a disconnected module),
+`build.ps1`'s pre-check was made comment-/`#include`-aware so it no longer demands them.
 
 **Still live on purpose:** the **Final Adobe Clean Check** still removes a hosts-update
 scheduled task if one exists (a prior/official build could have installed one) — removing
