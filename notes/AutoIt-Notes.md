@@ -276,6 +276,24 @@ If Not FileExists($g_sMITM_EXE) Then FileInstall("resources\...\mitmdump.exe", $
 So a bundled resource for a feature the user never touches never lands on their
 disk, even though it's always carried in the exe. (The `1` third arg = overwrite.)
 
+### Payload size ≠ code size
+
+The compiled `.exe` = the (small) compiled script **plus every `FileInstall` source
+embedded whole**. So a feature's weight in the exe is dominated by what it *bundles*,
+not how much code it has:
+
+- A feature with little code but a big bundled binary balloons the exe. (GenP's Proxy
+  feature is ~660 lines of script but `FileInstall`s `mitmdump.exe` — a standalone
+  Python+mitmproxy binary of tens of MB — so it added that whole payload to the exe.)
+- A pure-code feature adds almost nothing to the exe, however complex. (Removing the
+  Hosts "Schedule updates" button changed the output by ~a kilobyte of bytecode.)
+
+Consequence: **removing a feature reclaims space only if it bundled resources.**
+Disconnect a module whose `#include` is commented out and its `FileInstall` lines stop
+compiling, so the bundled bytes are dropped from the exe — that, not the deleted code,
+is what shrinks it. To gauge a feature's exe footprint, look at its `FileInstall`
+sources' file sizes, not its line count.
+
 ## Tooling
 
 - **Au3Check** (`Au3Check.exe`): the compiler's front-end / validator. It expands
