@@ -563,7 +563,7 @@ Func TrustEXEs()
 
 	Local $dllSourcePath = @ScriptDir & "\wintrust.dll"
 	If Not FileExists($dllSourcePath) Or FileGetSize($dllSourcePath) <> 382712 Then
-		FileInstall("wintrust.dll", $dllSourcePath, 1)
+		FileInstall("resources\wintrust.dll", $dllSourcePath, 1)
 		If Not FileExists($dllSourcePath) Then
 			MemoWrite("Error: Failed to extract wintrust.dll to " & $dllSourcePath)
 			LogWrite(1, "Error: Failed to extract wintrust.dll.")

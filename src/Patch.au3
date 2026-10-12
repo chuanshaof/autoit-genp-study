@@ -2669,7 +2669,7 @@ Func _AutoUnpackIfRuntimeInstaller($sFilePath)
 
 	Local $upxPath = @ScriptDir & "\upx.exe"
 	If Not FileExists($upxPath) Then
-		FileInstall("upx.exe", $upxPath, 1)
+		FileInstall("resources\upx.exe", $upxPath, 1)
 		If Not FileExists($upxPath) Then
 			LogWrite(1, "Auto-unpack failed: upx.exe could not be extracted.")
 			Return False
@@ -2840,7 +2840,7 @@ Func UnpackRuntimeInstallers()
 
 	Local $upxPath = @ScriptDir & "\upx.exe"
 	If Not FileExists($upxPath) Then
-		FileInstall("upx.exe", $upxPath, 1)
+		FileInstall("resources\upx.exe", $upxPath, 1)
 		If Not FileExists($upxPath) Then
 			_GUICtrlTab_SetCurFocus($hTab, $g_iLogTabIndex)
 			MemoWrite("Error: Failed to extract upx.exe to " & $upxPath)
