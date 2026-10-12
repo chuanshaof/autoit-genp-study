@@ -67,7 +67,7 @@ appears when something is unsaved). Grouped into boxes:
 
 **Patch Options**
 - *Show Beta apps* — include Adobe Beta apps in results.
-- *Enable Good patch* — apply the "good" pattern variant.
+- *Enable Good patch* — applies the stronger "good" pattern variant, which also **blocks Adobe's licensing network calls** (keeps apps activated without phoning home). Side effect: Adobe's own licensing component then keeps failing and writing `gude-*.log` files that pile up in Adobe folders — so enabling this on Save prompts you to set up **Gude Log Cleanup** (see below) to auto-delete them.
 - *Show app launch toolbar* — show the floating quick-launch bar for patched apps.
 - *Older versions download* — **[REMOVED — `[OVD-REMOVED]`]** enable older-version download behavior. *(Launched the bundled `main.exe` downloader.)*
 - *Clear license caches after patching* — wipe Adobe license caches when a patch finishes.
@@ -204,6 +204,26 @@ and Config versions).
 If *Show app launch toolbar* is on (Options tab), a small separate always-handy bar shows
 buttons to launch your patched Adobe apps directly. It has its own minimise and config
 buttons. Built in [`src/AdobeApps.au3` → `_BuildAppsToolbar()`](AdobeApps.au3#L730).
+
+## Not a tab: Gude Log Cleanup (prompted)
+
+Not a button — GenP **offers it automatically** when you turn on **Enable Good patch** and
+click Save Options. Because the Good patch blocks Adobe's licensing calls, Adobe's own
+software keeps failing and writing `gude-YYYY-MM-DD.log` files into Adobe folders, which
+pile up over time. If you accept the prompt, GenP installs a **scheduled task** ("GenP Gude
+Log Cleanup") that periodically runs `RemoveGudeLogs.ps1` to delete those logs (on the
+drives you pick). Turning the Good patch back off later prompts to remove the task.
+
+- **What it cleans:** `gude*.log` files under `AppData\Roaming\Adobe`, `ProgramData\Adobe`,
+  and `<drive>:\Adobe`. Pure housekeeping — it only deletes those logs and records what it
+  removed; no network, nothing else touched.
+- **How it runs:** the same pattern as any GenP scheduled task — `schtasks` registers a task
+  that runs `powershell.exe -File RemoveGudeLogs.ps1`. (The `.ps1` is one of the bundled
+  `FileInstall` resources in `resources\`.)
+- **Why the logs exist:** GenP doesn't create them — Adobe's licensing component does, each
+  time the patch blocks its phone-home. GenP just sweeps them up.
+
+Built in [`src/Hosts.au3` → `_SetupGudeCleanup` / `_ShowGudeSetupPrompt`](Hosts.au3).
 
 ---
 
