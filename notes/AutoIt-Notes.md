@@ -32,6 +32,7 @@ Python/JS/C.
 - **Build & tooling**
   - [FileInstall: files embedded at compile time](#fileinstall-files-embedded-at-compile-time)
   - [Tooling](#tooling)
+  - [Security: AutoIt exes are powerful (and abused)](#security-autoit-exes-are-powerful-and-abused)
 
 ---
 
@@ -327,3 +328,42 @@ sources' file sizes, not its line count.
   are compile/run directives starting with `#`.
 - `#Au3Stripper_*` directives are hints for Au3Stripper (an obfuscator/optimizer),
   not part of normal running.
+
+## Security: AutoIt exes are powerful (and abused)
+
+Something to be aware of when reading/running AutoIt tools. It follows from the "glue"
+nature: `FileInstall` can bundle *any* file into the exe, and `Run`/`RunWait`/
+`ShellExecute` can launch *anything* — with the user's privileges (and `#RequireAdmin`
+means full admin).
+
+**Capability ≠ vulnerability — two different things:**
+
+- **AutoIt is a known malware-authoring favorite.** `FileInstall` (pack a payload) +
+  `Run` (execute it) + trivial syntax make it low-effort to weaponise, so AV engines are
+  suspicious of AutoIt-compiled exes (false positives are common). But this is *ease of
+  abuse*, not a unique power — any compiled language (C, Go, PyInstaller, Electron) can
+  bundle and run arbitrary code too. "Can run anything" = native code with user rights,
+  not AutoIt specifically.
+- **The `Run`-anything capability is not, by itself, an external attack surface.** An
+  outsider can't inject new `Run` calls into a running script; they'd have to modify the
+  exe/source first — and if they can do that, you're already compromised in any language.
+  The real vectors are **trojaned copies** (a tampered build with extra `Run`/`FileInstall`
+  lines) and **downloaded payloads** (anything the script fetches and then acts on).
+
+**The end-user risk (the sharp one):** a compiled `.exe` is **opaque** — unlike a `.ps1`
+or `.py` you can read first, you must trust the author blind. Add `#RequireAdmin` (runs
+with full privileges) and an **untrusted source** (forums, mirrors), and you have the
+classic Windows malware delivery vector: **cracks / keygens / "patchers."** A large share
+of real infections arrive exactly this way — "it's just a patcher," clicked through a UAC
+prompt. Obfuscation (Au3Stripper, the cipher/base64 tricks) makes it *worse* to audit, not
+better. And note: a plain Aut2exe build is trivially **decompilable** back to source, so
+the exe hides little from a determined reader but everything from a casual one.
+
+**Auditing an AutoIt tool's "reach outside itself":** grep for `Run`, `RunWait`,
+`ShellExecute`, `ShellExecuteWait`, and `FileInstall`. Those few calls are the entire
+external-execution surface — check what each one launches/bundles.
+
+**Defenses are process, not code:** read the source instead of trusting the exe; run
+untrusted admin tools in a **VM / sandbox**; treat *opaque + admin + untrusted-source* as a
+red flag by default. (A keyless self-hash "official source" check — like GenP's — is
+tamper-*evidence* at best, and forgeable, so not real assurance.)
