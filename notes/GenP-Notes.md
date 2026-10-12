@@ -33,6 +33,8 @@ pick it back up. For language concepts, see `AutoIt-Notes.md`.
   - [What we changed, and how it was verified](#what-we-changed-and-how-it-was-verified)
   - [Deferred (not done)](#deferred-not-done)
   - [Open questions / not yet understood](#open-questions--not-yet-understood)
+- **G. Learning modifications (feature removals)**
+  - [Lessons from removing a feature](#lessons-from-removing-a-feature)
 
 ---
 
@@ -410,3 +412,31 @@ Things we haven't dug into yet (edges for future-you):
 - **`$g_aSignature`** — what URL it decodes to (via `Deloader`) and where it's used.
 - **Full `config.ini` schema** — all sections and what each controls (we only looked
   at the few startup reads).
+
+---
+
+# G. Learning modifications (feature removals)
+
+The working copy has had features **switched off as learning exercises** (removals, not
+improvements) — by commenting, never deleting, each tagged for search. The **inventory**
+of what's removed (tags, scope, how to revert, resource side effects) lives in
+[`GenP-Features.md` → "Removed in this build"](GenP-Features.md). Captured here are only
+the reusable lessons.
+
+## Lessons from removing a feature
+
+1. **A feature is not in one place** — follow its *call graph* across files, not one
+   file. A keyword grep can miss a live caller whose name lacks the keyword
+   (`_AppendToLogWindow` had no "proxy"/"mitm" in it); sweep by function name.
+2. **Three involvement types, handled differently:** *mis-file* (move it — e.g. the
+   `_GenP_WM_*` handlers → `Ui.au3`); *genuine dependency* (remove the call, keep the
+   callee if shared); *bridge helper* (filed by what it does, used by one feature —
+   orphaned when its caller goes, e.g. `_SilentHostsInjector`).
+3. **Creation path ≠ cleanup path.** Removing how a feature is *created* doesn't make its
+   *cleanup* pointless — a prior build may have left state on the machine. (Kept the Final
+   Clean Check hosts-task step for exactly this; see its note in `Patch.au3`.)
+4. **No nested functions → orphaned helpers don't vanish** (see `AutoIt-Notes.md`): a
+   single-use helper is still a global, so removing its one caller leaves dead code to
+   find and wrap by hand.
+5. **Naive text scan ≠ compiler.** `build.ps1`'s `FileInstall` pre-check was made
+   `#include`-aware so it stops demanding resources for disconnected code.

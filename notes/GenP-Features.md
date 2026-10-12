@@ -15,6 +15,12 @@ The window is a single fixed-size dialog with **8 tabs** across the top. Every t
 
 Built in [`src/Ui.au3` → `MainGui()`](Ui.au3#L65).
 
+> **This working copy has features switched off (learning exercises).** The tab strip
+> above is GenP's *full* layout; in this build the **Proxy** tab is gone (7 tabs) and the
+> Hosts **Schedule updates** button is gone. Removed items are flagged **[REMOVED]** inline
+> below; the full inventory + how to revert is in
+> ["Removed in this build"](#removed-in-this-build-learning-exercises) at the end.
+
 ---
 
 ## 1. Main
@@ -69,7 +75,7 @@ appears when something is unsaved). Grouped into boxes:
 
 **Hosts Options**
 - *Hosts List URL* — the blocklist URL the Hosts tab pulls from (editable).
-- *Trigger one-off capture and launch on save* — one-shot: start a capture and launch an app when you save.
+- *Trigger one-off capture and launch on save* — **[REMOVED — `[PROXY-REMOVED]`]** one-shot: start a capture and launch an app when you save. *(Was part of the Proxy feature.)*
 
 **Clean Options**
 - *Reset patch_states.ini* — wipe the patch-state ledger on save.
@@ -102,11 +108,15 @@ Block Adobe activation/telemetry domains via the Windows hosts file, to cut down
 | Edit hosts | Open the hosts file to edit it manually. |
 | Clean hosts | Remove GenP's blocklist entries (enabled only if they're present). |
 | Restore hosts | Restore the `hosts.bak` backup (enabled only if a backup exists). |
-| Schedule updates | Install a scheduled task that refreshes the blocklist automatically. |
+| ~~Schedule updates~~ **[REMOVED — `[SCHEDULE-HOSTS-REMOVED]`]** | Install a scheduled task that refreshes the blocklist automatically. |
 
 ---
 
-## 5. Proxy
+## 5. Proxy  — **[REMOVED in this build — `[PROXY-REMOVED]`]**
+
+> This entire tab and feature are switched off in this working copy (see
+> ["Removed in this build"](#removed-in-this-build-learning-exercises)). The description
+> below documents what it does in a *full* GenP build.
 
 Run a local **mitmproxy** that intercepts and neutralises Adobe "heartbeat" licensing
 traffic. *(Credit to MP7909.)* A live **Status:** line shows the current state. Buttons
@@ -194,3 +204,34 @@ and Config versions).
 If *Show app launch toolbar* is on (Options tab), a small separate always-handy bar shows
 buttons to launch your patched Adobe apps directly. It has its own minimise and config
 buttons. Built in [`src/AdobeApps.au3` → `_BuildAppsToolbar()`](AdobeApps.au3#L730).
+
+---
+
+## Removed in this build (learning exercises)
+
+This working copy has features **switched off** to study how a feature threads through the
+code. Nothing is deleted — everything is commented and tagged, so one search finds every
+piece and reverts it.
+
+| Tag (search the source) | Removed | Where |
+|-------------------------|---------|-------|
+| `[PROXY-REMOVED]` | the whole **Proxy** tab + feature (mitmproxy), incl. the Options *trigger-capture* checkbox | `main.au3`, `Ui.au3`, `Patch.au3`, `Hosts.au3`, `Proxy.au3` (module disconnected), `build.ps1` |
+| `[SCHEDULE-HOSTS-REMOVED]` | the Hosts tab's **Schedule updates** button + its dialog | `Ui.au3`, `main.au3`, `Hosts.au3` |
+
+**Mechanics:** multi-line blocks use AutoIt `#cs … #ce`; single lines use `;`. To revert
+a feature: search its tag, delete the `#cs`/`#ce` marker lines, and re-enable any
+`;`-commented line or `#include`. The three `_GenP_WM_*` handlers were *moved* (from
+`Proxy.au3` into `Ui.au3`) because they are main-window handlers, not proxy — that move is
+permanent and stays on revert.
+
+**Resource side effect:** with Proxy off, `resources\mitmproxy\mitmdump.exe` and
+`mitmproxy_genuine_fullguard.py` are no longer embedded (safe to delete). Keep
+`resources\mitmproxy\main.exe` — it's the Older Versions Downloader, a different feature.
+
+**Still live on purpose:** the **Final Adobe Clean Check** still removes a hosts-update
+scheduled task if one exists (a prior/official build could have installed one) — removing
+the *button* that creates it doesn't make the *cleanup* pointless. (The proxy teardown in
+that same check *was* removed, but only because its function lived in the excised
+`Proxy.au3`.)
+
+For the *why*/lessons behind these removals, see [`GenP-Notes.md` → section G](GenP-Notes.md).

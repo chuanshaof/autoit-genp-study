@@ -160,6 +160,7 @@ Func _IsHostsAutoUpdateInstalled()
 	Return ($iExit = 0)
 EndFunc
 
+#cs === [SCHEDULE-HOSTS-REMOVED] dialog-only scheduling helpers, orphaned when the Schedule dialog was removed (only callers were inside _ShowHostsAutoUpdateDialog). NOTE: _IsHostsAutoUpdateInstalled (above) and _RemoveHostsAutoUpdate (below) are deliberately NOT wrapped - Patch.au3's Final Clean Check still calls them. ===
 Func _GetHostsAutoUpdateMethod()
 	If Not _IsHostsAutoUpdateInstalled() Then Return $g_iHAU_METHOD_NONE
 	Local $sXml = _RunGetOutput('schtasks /query /tn "' & $g_sHAU_TASK_NAME & '" /xml')
@@ -233,6 +234,7 @@ Func _SetupHostsAutoUpdate($iMethod, $sDailyTime = "00:00")
 
 	Return True
 EndFunc
+#ce === [SCHEDULE-HOSTS-REMOVED] end dialog-only scheduling helpers ===
 
 Func _RemoveHostsAutoUpdate($bAlsoRemoveAdvancedFiles = True)
 	If Not _IsHostsAutoUpdateInstalled() Then
@@ -257,11 +259,13 @@ Func _RemoveHostsAutoUpdate($bAlsoRemoveAdvancedFiles = True)
 	Return True
 EndFunc
 
+#cs === [SCHEDULE-HOSTS-REMOVED] _RunHostsAutoUpdateNow - only caller was the removed Schedule dialog ===
 Func _RunHostsAutoUpdateNow()
 	If Not _IsHostsAutoUpdateInstalled() Then Return False
 	Local $iExit = RunWait(@ComSpec & ' /c schtasks /run /TN "' & $g_sHAU_TASK_NAME & '"', "", @SW_HIDE)
 	Return ($iExit = 0)
 EndFunc
+#ce === [SCHEDULE-HOSTS-REMOVED] end _RunHostsAutoUpdateNow ===
 
 Func _IsGudeCleanupInstalled()
 	Local $iExit = RunWait(@ComSpec & ' /c schtasks /query /TN "' & $g_sGUDE_TASK_NAME & '" >nul 2>&1', "", @SW_HIDE)
@@ -422,6 +426,7 @@ Func _ShowGudeRemovePrompt()
 	EndSelect
 EndFunc
 
+#cs === [SCHEDULE-HOSTS-REMOVED] ===
 Func _ShowHostsAutoUpdateDialog()
 	Local $iW = 520
 	Local $iH = 400
@@ -576,7 +581,9 @@ Func _ShowHostsAutoUpdateDialog()
 
 	GUIDelete($hDlg)
 EndFunc
+#ce === [SCHEDULE-HOSTS-REMOVED]
 
+#cs === [SCHEDULE-HOSTS-REMOVED] _RefreshAutoUpdateDialogStatus - private helper for the removed Schedule dialog (all 3 callers were inside it) ===
 Func _RefreshAutoUpdateDialogStatus($idLbl, $idBtnRunNow, $idBtnRemove)
 	Local $iMethod = _GetHostsAutoUpdateMethod()
 	Switch $iMethod
@@ -597,6 +604,7 @@ Func _RefreshAutoUpdateDialogStatus($idLbl, $idBtnRunNow, $idBtnRemove)
 			GUICtrlSetState($idBtnRemove, $GUI_DISABLE)
 	EndSwitch
 EndFunc
+#ce === [SCHEDULE-HOSTS-REMOVED] end _RefreshAutoUpdateDialogStatus ===
 
 #cs === [PROXY-REMOVED] _SilentHostsInjector: hosts-file helper whose ONLY callers were the
 ;   proxy feature (the log window "Add hosts" button in Ui.au3 + two Proxy.au3 calls).

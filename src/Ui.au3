@@ -351,8 +351,10 @@ Func MainGui()
 	GUICtrlSetState($idBtnRestoreHosts, $GUI_DISABLE)
 	GUICtrlSetFont($idBtnRestoreHosts, 9, 400, 0, "Segoe UI")
 
+#cs === [SCHEDULE-HOSTS-REMOVED] Removing single button for schedule updates ===
 	$idBtnAutoUpdateHosts = GUICtrlCreateButton("Schedule updates", 227, 270, 140, 32)
 	GUICtrlSetFont($idBtnAutoUpdateHosts, 9, 400, 0, "Segoe UI")
+#ce === [SCHEDULE-HOSTS-REMOVED] end schedule host tab===
 
 	GUICtrlCreateLabel( _
 			"Manage the hosts file to block domains associated with popups." & @CRLF & @CRLF & _

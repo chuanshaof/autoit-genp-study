@@ -18,6 +18,7 @@ Python/JS/C.
 - **Program structure**
   - [The standard library (UDFs) and `#include`](#the-standard-library-udfs-and-include)
   - [How a multi-file script runs (the two phases)](#how-a-multi-file-script-runs-the-two-phases)
+  - [No nested functions](#no-nested-functions)
 - **GUI**
   - [GUI model](#gui-model)
     - [The basic building block: one control = one line](#the-basic-building-block-one-control--one-line)
@@ -156,6 +157,20 @@ Consequences:
 - Top-level statement **order does matter** (they run in sequence).
 - So: move functions freely between files safely; be careful moving top-level
   code.
+
+## No nested functions
+
+Every `Func ... EndFunc` is **top-level**; you cannot define a function inside another
+(no Python/JS-style inner functions or closures). So a helper used by only one function
+is still a separate global function.
+
+Consequences when refactoring:
+- Removing a function does **not** remove its private helpers — they stay as orphaned
+  global functions (dead code) you must find and remove by hand. With inner functions
+  they'd vanish with the parent.
+- There's no language-level "private to this function" signal — only the **call graph**
+  tells you a helper is used in just one place. (Use a function-name search for every
+  caller; don't trust naming or file location.)
 
 ## GUI model
 

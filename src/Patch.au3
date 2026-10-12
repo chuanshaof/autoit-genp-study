@@ -302,6 +302,14 @@ Func _RunFinalCleanCheck()
 	GUICtrlSetData($idStepLabel, "Removing scheduled tasks and log files...")
 	GUICtrlSetData($idStepBar, 33)
 	Local $sTaskReport = ""
+	; NOTE [SCHEDULE-HOSTS-REMOVED]: this stays LIVE even though the Schedule-updates
+	;   button/dialog were removed. _IsHostsAutoUpdateInstalled checks the real Windows
+	;   Task Scheduler, so a task installed by an EARLIER/official GenP build (or before
+	;   the button was removed) can still exist on this machine - and Final Clean Check's
+	;   whole job is to remove it. It returns "not installed" harmlessly when none exists.
+	;   DO NOT wrap this: removing a feature's CREATION path (the button) does not make its
+	;   CLEANUP path pointless. (Contrast: the proxy cleanup above HAD to go, because
+	;   _RemoveMitmproxy lived in the excised Proxy.au3 - a different, forced reason.)
 	If _IsHostsAutoUpdateInstalled() Then
 		_RemoveHostsAutoUpdate(True)
 		$sTaskReport &= "UpdateHostsFile task removed"

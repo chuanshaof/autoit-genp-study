@@ -1355,9 +1355,11 @@ While 1
 
 		Case $idMsg = $idBtnRestoreHosts
 			RestoreHosts()
-
+			
+#cs === [SCHEDULE-HOSTS-REMOVED] ===
 		Case $idMsg = $idBtnAutoUpdateHosts
 			_ShowHostsAutoUpdateDialog()
+#ce === [SCHEDULE-HOSTS-REMOVED] ===
 
 #cs === [PROXY-REMOVED] event-loop cases - delete this #cs and its matching #ce to restore ===
 		Case $idMsg = $idBtnProxySetup
