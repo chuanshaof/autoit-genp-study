@@ -411,8 +411,26 @@ principle — a dangerous DLL's risk is defined by *where it's loaded* — see `
 → "Security: AutoIt exes are powerful (and abused)".
 
 > **This build:** the apply path is disabled — `AddDevOverride` is neutered (`[WINTRUST-REMOVED]`),
-> so GenP can no longer enable the override or place the patched DLL. `RemoveDevOverride` is
-> kept intact for cleanup.
+> the WinTrust tab's buttons are removed (the tab is kept, with a "disabled" notice), and the
+> bundled `wintrust.dll` is deleted + its `FileInstall` commented (so it's no longer packed into
+> the exe). `RemoveDevOverride` / `UntrustEXEs` are kept for cleanup (a prior build may have
+> applied the override elsewhere).
+
+How WinTrust worked, and what removing it actually does:
+
+- **Trusting was always manual.** Only the WinTrust tab's "Toggle WinTrust" button ever placed
+  the per-app `.local\wintrust.dll`. The **Patch (Cure) flow never auto-trusts** (contrast
+  "Enable NGL Firewall", which *does* auto-apply during patching). So it was opt-in and
+  situational — not part of patching.
+- **After removal, every app reads "not trusted" — accurate, not broken.** The status-reader
+  functions (`_HasWinTrustDll` / `_SyncWinTrustFromDisk` / `_RefreshGroupHeadersFromWT`) are
+  **kept** — the file list calls them, so deleting them would break the listview — they simply
+  always report negative now (nothing is trusted).
+- **"Untrusted" ≠ broken / unpatched.** It only means the signature-bypass DLL isn't placed for
+  that app; the app is still patched and runs. It ever only mattered for the few pro apps that
+  self-verify signatures (those would show a signature popup instead of having it silenced).
+- **Functionally isolated:** Patch / Search / Restore / the file list / Final Clean Check all
+  work unchanged. The only visible difference is the absence of any "trusted" markers.
 
 ---
 
