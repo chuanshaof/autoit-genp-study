@@ -21,12 +21,15 @@ pick it back up. For language concepts, see `AutoIt-Notes.md`.
 - **C. How features work**
   - [config.ini is the program's data](#configini-is-the-programs-data)
   - [Feature rundown](#feature-rundown)
+  - [Why packed files must be unpacked before patching](#why-packed-files-must-be-unpacked-before-patching-upx)
 - **D. Known things / discoveries**
   - [Self-hash trailer / "unofficial" warning](#self-hash-trailer--not-from-official-sources-warning)
   - [Why the stamp is weak security](#why-the-stamp-is-weak-security-checksum-vs-signature)
   - [Disguised function names](#disguised-function-names)
   - [Obfuscated strings (Caesar +10)](#obfuscated-strings-caesar-10)
   - ["Declarations" that run code](#declarations-that-run-code)
+  - [Bundled binaries and verification](#bundled-binaries-and-verification)
+  - [The WinTrust feature lowers system security](#the-wintrust-feature-lowers-system-security-what-it-changes)
 - **E. Building & running**
   - [Building it](#building-it)
   - [Official build pipeline (origs\build.ps1)](#official-build-pipeline-origsbuildps1)
@@ -258,6 +261,30 @@ High-level, "what it does + where", one line each:
 - **WinTrust / DevOverride** — registry/DLL changes so patched binaries pass Windows
   signature checks / load (`ManageWinTrust`, `AddDevOverride`).
 
+## Why packed files must be unpacked before patching (UPX)
+
+The Patch engine works by **byte-pattern search-and-replace** (`MyGlobalPatternSearch` /
+`MyGlobalPatternPatch`) using the patterns in `config.ini`. That only works on a file's
+**real, readable code**. A **UPX-compressed** file has its code compressed/scrambled, so
+patching it *as-is* goes wrong one of two ways:
+
+- The target byte-patterns **aren't present** in the packed bytes → the patch **finds
+  nothing and silently does nothing** → that app is left *un-bypassed*. The tool's core
+  goal (license bypass) **quietly fails** for that file, with no obvious error. **Or**
+- Blindly rewriting bytes inside a compressed blob would **corrupt the packed file** →
+  a broken app.
+
+So for any packed file, `upx -d` **must** run *before* patching — via
+`_AutoUnpackIfRuntimeInstaller` (which calls `IsUPXPacked` → `PatchUPXHeader` → `upx -d`).
+It's a **hard prerequisite**, not an optional nicety: skip it and patching either no-ops or
+corrupts.
+
+Scope keeps it from being "core": only a narrow category is packed (the "runtime installer"
+files), and GenP detects each file by the `UPX!` byte marker, so most files never need it.
+But **for the files that *are* packed, unpacking is mandatory** — it's the line between
+"license bypass works" and "patch quietly failed / app broken." That's why UPX is a small
+but **non-droppable** helper: rarely used, yet essential wherever it applies.
+
 ---
 
 # D. Known things / discoveries
@@ -329,6 +356,63 @@ Watch out in `main.au3`'s startup: lines like
 `Global $x = IniRead(...)` **create the variable and execute `IniRead` right then.**
 So a block that looks like "just declarations" can be doing real work (reading files),
 and the order of those lines matters. (General AutoIt gotcha — see `AutoIt-Notes.md`.)
+
+## Bundled binaries and verification
+
+The exe bundles third-party binaries via `FileInstall` (all now under `resources\`).
+Source review shows *how* GenP uses them (the `Run`/`RunWait` calls); their *identity*
+needs checking the **bytes**. Verified **2026-10-12** — recorded so future-you can re-check
+(a hash change means the file was swapped):
+
+| File | Version (PE metadata) | Size (bytes) | SHA-256 | Notes |
+|------|-----------------------|--------------|---------|-------|
+| `upx.exe` | UPX 5.0.1 (2025-05-06), The UPX Team | 599,040 | `8def9daba0817636962e60878e117ee1dcba6c3f64fb4bc13449d447385f1b5b` | Presents as genuine UPX 5.0.1 (version resource + official release date both 2025-05-06). Byte-match to an official hash not done — UPX publishes no per-asset digests; VirusTotal the SHA-256 to confirm. MD5 `a14acd4e0fd7f388b6c42cde82fec28b`. |
+| `wintrust.dll` | Microsoft WINTRUST.DLL 10.0.19041.630 | 382,712 | `8c6c791e8db8728f9a610def238c61be054bfa3de487bf6ab037130a61a3ef19` | **Patched** Microsoft DLL — invalid signature *by design* (the WinTrust bypass). A scanner (Gridinsoft) shows **0 AV detections**. Size matches GenP's own `DevOverride.au3` check (expected 382,712). MD5 `b7a38368a52ff07d875e6465bd7ee26a`. |
+
+Other `resources\` items are data/scripts, not "run" binaries: `config.ini` (settings
+seed, kept at the project root), `RemoveGudeLogs.ps1` (Gude cleanup), `ccx-start-10.8.1.zip`.
+Deleted during the feature removals: `mitmdump.exe`, `mitmproxy_genuine_fullguard.py`,
+`main.exe` (the OVD).
+
+Re-verify: `(Get-Item file).VersionInfo` (version, no execution) · `Get-FileHash` /
+`sha256sum` (bytes) · `virustotal.com/gui/file/<sha-256>` (identity — expect UPX clean;
+the patched `wintrust.dll` flagged hacktool/riskware but with no real malware family). This
+is the "verify the bytes, not just the source" half — see `AutoIt-Notes.md` → "Security:
+AutoIt exes are powerful (and abused)".
+
+## The WinTrust feature lowers system security (what it changes)
+
+The **WinTrust** tab is the most security-relevant feature in GenP. Its job: make
+GenP-patched binaries pass Windows **code-signature checks** (patching breaks a file's
+signature, so apps that self-verify would pop up / refuse to load). It does this by
+**weakening signature verification** — in three pieces, **two of them machine-wide**:
+
+1. **Registry, system-wide (`AddDevOverride`):**
+   - `…\Image File Execution Options\DevOverrideEnable = 1` **and**
+     `…\SideBySide\DevOverrideEnable = 1` → re-enable `.local` DLL redirection of protected
+     DLLs machine-wide (a DLL-sideloading safeguard normally suppressed for manifest'd apps).
+   - `…\Cryptography\Wintrust\Config\EnableCertPaddingCheck = 0` (64- **and** 32-bit) → keep
+     Windows' **lenient** Authenticode check (CVE-2013-3900) so modified/appended binaries
+     still validate as "signed", machine-wide.
+2. **Patched `wintrust.dll`, per-app (`TrustEXEs`):** drops a neutered `wintrust.dll` (always
+   answers "trusted") into each Adobe app's `<exe>.local\` folder, so that app's signature
+   checks always pass. The real `System32\wintrust.dll` is **not** modified.
+
+Why it matters: an always-"trusted" `wintrust.dll` is a real attack primitive, and
+`DevOverrideEnable=1` + `EnableCertPaddingCheck=0` are **persistent, machine-wide** reductions
+in Windows' code-integrity defenses (they survive reboots). The patched DLL is per-app
+(limited blast radius); the registry changes are not. The feature is **optional and
+situational** (the patch works without it; only some pro apps need it), so the safe default
+is **don't enable it unless you actually get signature popups**.
+
+Reverse with **`RemoveDevOverride`** (`DevOverrideEnable=0`, `EnableCertPaddingCheck=1`) +
+**`UntrustEXEs`** (delete the `.local\wintrust.dll` files), or Final Clean Check. General
+principle — a dangerous DLL's risk is defined by *where it's loaded* — see `AutoIt-Notes.md`
+→ "Security: AutoIt exes are powerful (and abused)".
+
+> **This build:** the apply path is disabled — `AddDevOverride` is neutered (`[WINTRUST-REMOVED]`),
+> so GenP can no longer enable the override or place the patched DLL. `RemoveDevOverride` is
+> kept intact for cleanup.
 
 ---
 

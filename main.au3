@@ -102,7 +102,7 @@ Global $g_bUpdateNoticeShown = False
 Global $g_idOptionsProgress = -1
 Global $g_sRequiresGood1Files = "|"
 
-Global Const $g_iLogTabIndex = 7
+Global Const $g_iLogTabIndex = 6 ; [PROXY-REMOVED] was 7; removing the Proxy tab shifted Log from the 8th tab to the 7th (index 6)
 
 Global $g_idStatusTitle = -1, $g_idStatusDetail = -1
 Global $g_sCurrentSearchPath = ""
@@ -1331,6 +1331,7 @@ While 1
 		Case $idMsg = $idBtnRestoreAGS
 			RestoreAGSDummy()
 
+#cs === [WINTRUST-REMOVED] "Set Trust Path" button case ===
 		Case $idMsg = $idBtnSetTrustPath
 			Local $sSelected = _BrowseForFolderDialog("Select the Adobe installation folder for WinTrust", $MyhGUI)
 			If $sSelected = "" Then ContinueLoop
@@ -1344,6 +1345,7 @@ While 1
 			MemoWrite(@CRLF & "WinTrust path set to: " & $g_sWinTrustPath)
 			LogWrite(1, "WinTrust path changed to: " & $g_sWinTrustPath)
 			_TidyConfigSpacing($sINIPath)
+#ce === [WINTRUST-REMOVED] end "Set Trust Path" case ===
 
 		Case $idMsg = $idBtnUpdateHosts
 			ToggleLog(0)
@@ -1484,6 +1486,7 @@ While 1
 
 		Case $idMsg = $idBtnToggleRuntimeInstaller
 
+#cs === [WINTRUST-REMOVED] "Toggle WinTrust" + "Toggle Reg Key" button cases ===
 		Case $idMsg = $idBtnToggleWinTrust
 			ToggleLog(0)
 			ManageWinTrust()
@@ -1491,6 +1494,7 @@ While 1
 		Case $idMsg = $idBtnDevOverride
 			ToggleLog(0)
 			ManageDevOverride()
+#ce === [WINTRUST-REMOVED] end WinTrust/RegKey cases ===
 
 		Case $idMsg = $idBtnAGSInfo
 

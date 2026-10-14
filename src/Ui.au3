@@ -294,6 +294,7 @@ Func MainGui()
 	; ----- TAB 3: WinTrust ----- toggle WinTrust / reg key, set trust path (-> DevOverride.au3)
 	Local $hWinTrustTab = GUICtrlCreateTabItem("WinTrust")
 
+#cs === [WINTRUST-REMOVED] WinTrust tab controls removed (apply path is dead - see AddDevOverride). The RemoveDevOverride / UntrustEXEs cleanup functions are KEPT in DevOverride.au3 (just no buttons now). ===
 	$sWinTrustText = "WINTRUST"
 	$idLabelWinTrust = GUICtrlCreateLabel($sWinTrustText, (595 - 580) / 2, 50, 580, 20, $SS_CENTER)
 	GUICtrlSetFont($idLabelWinTrust, 10, 700)
@@ -317,6 +318,9 @@ Func MainGui()
 			"You can trust or untrust applications at any time as needed." & @CRLF & @CRLF & _
 			"Credit to Team V.R.", _
 			(595 - 580) / 2, 410, 580, 130, $SS_CENTER)
+	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
+#ce === [WINTRUST-REMOVED] end WinTrust tab controls ===
+	GUICtrlCreateLabel("WinTrust is disabled in this build (removed for security).", (595 - 580) / 2, 90, 580, 20, $SS_CENTER)
 	GUICtrlSetFont(-1, 9, 400, 0, "Segoe UI")
 
 	$idBtnWintrustInfo = GUICtrlCreateDummy()
@@ -536,11 +540,12 @@ Func MainGui()
 			$idShowLaunchBar, $idEnableNGLFirewall, $idResetOnSave, $idClearLicCaches, _
 			$idReconcileStates, $idCreateStates, $idUseCustomDefault, _
 			$idBtnSetCustomPath, $idCustomDomainListInput, $idFinalCleanCheck]
-	Global $g_aToolCtrls[20] = [ _
+	; [WINTRUST-REMOVED] dropped $idBtnToggleWinTrust, $idBtnDevOverride, $idBtnSetTrustPath; array [20] -> [17]
+	Global $g_aToolCtrls[17] = [ _
 			$idBtnUpdateHosts, $idBtnCleanHosts, $idBtnEditHosts, $idBtnRestoreHosts, _
 			$idBtnCreateFW, $idBtnToggleFW, $idBtnRemoveFW, $idBtnOpenWF, _
-			$idBtnToggleRuntimeInstaller, $idBtnToggleWinTrust, $idBtnDevOverride, _
-			$idBtnRemoveAGS, $idBtnDummyAGS, $idBtnRestoreAGS, $idBtnSetTrustPath, $idBtnAGSInfo, _
+			$idBtnToggleRuntimeInstaller, _
+			$idBtnRemoveAGS, $idBtnDummyAGS, $idBtnRestoreAGS, $idBtnAGSInfo, _
 			$idBtnFirewallInfo, $idBtnHostsInfo, $idBtnRuntimeInfo, $idBtnWintrustInfo]
 	Global $g_aCheckCtrls[5] = [ _
 			$idBtnCheckAll, $idBtnUncheckAll, $idBtnCheckUnpatched, $idBtnCheckPatched, $idBtnRefresh]

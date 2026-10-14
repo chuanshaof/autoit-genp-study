@@ -232,6 +232,16 @@ Func PatchUPXHeader($sFilePath)
 EndFunc
 
 Func AddDevOverride()
+	; === [WINTRUST-REMOVED] apply path disabled for security ===
+	;   Original body set DevOverrideEnable=1 (IFEO + SxS) and EnableCertPaddingCheck=0 (64/32)
+	;   - persistent, MACHINE-WIDE weakening of Windows signature verification that lets the
+	;   patched wintrust.dll / modified binaries pass as "trusted". Neutered so GenP can no
+	;   longer ENABLE the WinTrust bypass. Returning False also makes TrustEXEs abort BEFORE it
+	;   extracts/places the patched wintrust.dll. RemoveDevOverride is left intact for cleanup.
+	MemoWrite(@CRLF & "WinTrust override is disabled in this build (security); no registry changes made.")
+	LogWrite(1, "[WINTRUST-REMOVED] AddDevOverride neutered - refused to weaken signature-check security.")
+	Return False
+#cs === [WINTRUST-REMOVED] original AddDevOverride body (disabled) ===
 	If Not IsAdmin() Then
 		MemoWrite("Error: Administrator rights required to set WinTrust registry keys.")
 		LogWrite(1, "Error: Administrator rights required for registry access.")
@@ -285,6 +295,7 @@ Func AddDevOverride()
 	IniWrite($patchStatesINI, "Info", "DevOverrideEnable", "1")
 	ShowRebootPopup()
 	Return True
+#ce === [WINTRUST-REMOVED] end original AddDevOverride body ===
 EndFunc
 
 Func RemoveDevOverride()
@@ -563,7 +574,7 @@ Func TrustEXEs()
 
 	Local $dllSourcePath = @ScriptDir & "\wintrust.dll"
 	If Not FileExists($dllSourcePath) Or FileGetSize($dllSourcePath) <> 382712 Then
-		FileInstall("resources\wintrust.dll", $dllSourcePath, 1)
+		; [WINTRUST-REMOVED] FileInstall("resources\wintrust.dll", $dllSourcePath, 1)   ; resource deleted; apply path is dead, so this never runs (and the build pre-check skips this commented line)
 		If Not FileExists($dllSourcePath) Then
 			MemoWrite("Error: Failed to extract wintrust.dll to " & $dllSourcePath)
 			LogWrite(1, "Error: Failed to extract wintrust.dll.")
