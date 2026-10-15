@@ -530,6 +530,12 @@ Verification:
 
 Things we haven't dug into yet (edges for future-you):
 
+- **CCX Start pinning (`com.adobe.ccx.start` / `ccx-start-10.8.1.zip`)** — *backlog.*
+  Pins a known-good 10.8.1 of Adobe's Creative Cloud "Start"/Home UXP extension (the in-app
+  home + account / login / "not genuine" surface), auto-run during **Search**
+  (`_EnsureCcxStartPinned`), from the shared `Common Files\Adobe\UXP\extensions`. Open:
+  exactly what 10.8.1 changes vs. newer versions, and whether to leave / manage / remove.
+  Complex (23.4 MB bundled, load-bearing in Search, shared across apps) — deferred.
 - **`MainGui()` internals** — exactly what tabs/controls it builds and how the
   `$idBtn...` IDs map to the layout. Not read in detail yet.
 - **Patch engine internals** — how `MyGlobalPatternSearch` / `MyGlobalPatternPatch`

@@ -703,7 +703,29 @@ Func UpdateHostsFile()
 	EndIf
 	$sDomainList = FileRead($sTempFileDownload)
 	FileDelete($sTempFileDownload)
-	MemoWrite("Downloaded remote list:" & @CRLF & $sDomainList & @CRLF)
+
+	; --- [HOSTS-GUARD] sanitise the downloaded list before it touches the hosts file.
+	;     Keep only blackhole lines (0.0.0.0 / 127.0.0.1), comments (#) and blanks; drop
+	;     (and log) anything else, so a compromised or custom list URL cannot inject a
+	;     redirect to a real/attacker IP (e.g. "1.2.3.4 adobe.com" -> MITM). This ports the
+	;     filter the removed UpdateHostsFile.ps1 had into the one live path. ---
+	Local $aGuardLines = StringSplit(StringReplace($sDomainList, @CR, ""), @LF)
+	Local $sGuarded = "", $iGuardDropped = 0
+	For $iGuard = 1 To $aGuardLines[0]
+		Local $sGuardLine = StringStripWS($aGuardLines[$iGuard], 3)
+		If $sGuardLine = "" Or StringLeft($sGuardLine, 1) = "#" _
+				Or StringRegExp($sGuardLine, "^(0\.0\.0\.0|127\.0\.0\.1)\s") Then
+			$sGuarded &= $sGuardLine & @CRLF
+		Else
+			$iGuardDropped += 1
+			LogWrite(1, "Hosts guard: rejected non-blackhole line: " & $sGuardLine)
+		EndIf
+	Next
+	$sDomainList = StringStripWS($sGuarded, 2)
+	If $iGuardDropped > 0 Then _
+			MemoWrite(@CRLF & "Hosts guard: dropped " & $iGuardDropped & " non-0.0.0.0/127.0.0.1 line(s) from the downloaded list." & @CRLF)
+
+	MemoWrite("Downloaded remote list (sanitised):" & @CRLF & $sDomainList & @CRLF)
 
 	$sHostsContent = FileRead($sHostsPath)
 	If @error Then
