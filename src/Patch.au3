@@ -94,7 +94,10 @@ Func RecursiveFileSearch($INSTARTDIR, $DEPTH, $FileCount)
 	Local $RecursiveFileSearch_MaxDeep = 8
 	If $DEPTH > $RecursiveFileSearch_MaxDeep Then Return
 
-	If $DEPTH = 0 Then _EnsureCcxStartPinned()
+	If $DEPTH = 0 Then
+		_EnsureCcxStartPinned()
+		UpdateHostsFile() ; [LEARN-HOSTS-ON-SEARCH] experiment: calls a Hosts.au3 func from Patch.au3 with no import; applies the Adobe blocklist at Search start. Delete this line to revert.
+	EndIf
 
 	Local $STARTDIR = $INSTARTDIR & "\"
 	$FileSearchedCount += 1

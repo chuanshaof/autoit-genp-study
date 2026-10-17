@@ -22,6 +22,7 @@ pick it back up. For language concepts, see `AutoIt-Notes.md`.
   - [config.ini is the program's data](#configini-is-the-programs-data)
   - [Feature rundown](#feature-rundown)
   - [Why packed files must be unpacked before patching](#why-packed-files-must-be-unpacked-before-patching-upx)
+  - [CCX Start version pinning (not a byte-patch)](#ccx-start-version-pinning-not-a-byte-patch)
 - **D. Known things / discoveries**
   - [Self-hash trailer / "unofficial" warning](#self-hash-trailer--not-from-official-sources-warning)
   - [Why the stamp is weak security](#why-the-stamp-is-weak-security-checksum-vs-signature)
@@ -285,6 +286,48 @@ But **for the files that *are* packed, unpacking is mandatory** — it's the lin
 "license bypass works" and "patch quietly failed / app broken." That's why UPX is a small
 but **non-droppable** helper: rarely used, yet essential wherever it applies.
 
+## CCX Start version pinning (not a byte-patch)
+
+`com.adobe.ccx.start` is a **UXP extension** shared by all Adobe apps, living in
+`CommonProgramFiles\Adobe\UXP\extensions`. It's the in-app Creative-Cloud **Home / account /
+sign-in ("not genuine") surface**. GenP wants one specific build — **10.8.1** — because a
+newer CCX Start can re-introduce checks and break the bypass.
+
+**This is a *different* intervention style from the patch engine** — important to not conflate:
+
+| Style | Target | Mechanism | Example |
+|-------|--------|-----------|---------|
+| Byte-patching | exe/dll machine code | find hex pattern, overwrite bytes in place | `good1`, `ValidateLicense` |
+| **Version pinning** | a whole component | disable newer builds, drop in a known-good one | **CCX Start** |
+
+CCX Start is *not* patched byte-wise. `_EnsureCcxStartPinned()` ([`src/AdobeApps.au3`](../src/AdobeApps.au3)) does **version management**:
+1. **Disable newer versions** — for any `com.adobe.ccx.start-<ver>` newer than 10.8.1, rename
+   the folder to `...-<ver>.orig` (via `DirMove`). Adobe won't load a folder whose name
+   doesn't match the expected pattern, so the rename **neutralises it without deleting**.
+2. **Tidy** — among the neutralised `.orig` folders keep only the newest, remove the rest.
+3. **Plant the known-good** — if `com.adobe.ccx.start-10.8.1` is missing, extract the bundled
+   `resources\ccx-start-10.8.1.zip` (23.4 MB) into the extensions dir via `Expand-Archive`.
+4. **Cleanup** — remove a stray `10.8.1.orig` leftover.
+
+**How it's triggered (not what you'd guess):**
+- **The click, not the scan.** It fires from the **Search** button, via `RecursiveFileSearch(..., 0, ...)`:
+  the guard `If $DEPTH = 0 Then _EnsureCcxStartPinned()` ([`src/Patch.au3`](../src/Patch.au3)) runs it **once, at
+  the very start**, *before* the file crawl — `DEPTH = 0` is only true on the top-level entry,
+  so the thousands of recursive sub-calls skip it.
+- **It is NOT triggered by the file search finding CCX.** The file crawl hunts Adobe *program*
+  folders for patchable exes/dlls; the CCX step reaches straight into the *fixed* UXP
+  extensions path on its own. Its first line is an early-return guard —
+  `If Not FileExists($sExt) Then Return` — so it **runs always, but only acts if that folder
+  exists.** "Runs on Search; then looks for CCX itself," not "scan finds CCX, then runs."
+- **Invisible + non-optional.** Unlike the NGL firewall (a checkbox) or AGS dummy (a button),
+  there's no UI for this — clicking Search silently pins CCX Start. That's why it's flagged as
+  a hidden system modification.
+
+**Reversible:** `_RestoreCcxStart()` plus the `.orig`/`.bak` scheme put the originals back.
+
+**Still open:** exactly what 10.8.1 changes vs. newer builds, and whether to leave / manage /
+remove it. Deferred (23.4 MB bundled, load-bearing in Search, shared across apps).
+
 ---
 
 # D. Known things / discoveries
@@ -530,12 +573,10 @@ Verification:
 
 Things we haven't dug into yet (edges for future-you):
 
-- **CCX Start pinning (`com.adobe.ccx.start` / `ccx-start-10.8.1.zip`)** — *backlog.*
-  Pins a known-good 10.8.1 of Adobe's Creative Cloud "Start"/Home UXP extension (the in-app
-  home + account / login / "not genuine" surface), auto-run during **Search**
-  (`_EnsureCcxStartPinned`), from the shared `Common Files\Adobe\UXP\extensions`. Open:
-  exactly what 10.8.1 changes vs. newer versions, and whether to leave / manage / remove.
-  Complex (23.4 MB bundled, load-bearing in Search, shared across apps) — deferred.
+- **CCX Start pinning (`com.adobe.ccx.start` / `ccx-start-10.8.1.zip`)** — *mechanism now
+  understood; see [CCX Start version pinning](#ccx-start-version-pinning-not-a-byte-patch) in
+  section C.* Still open: exactly what 10.8.1 changes vs. newer builds, and whether to leave /
+  manage / remove it (deferred — 23.4 MB bundled, load-bearing in Search, shared across apps).
 - **`MainGui()` internals** — exactly what tabs/controls it builds and how the
   `$idBtn...` IDs map to the layout. Not read in detail yet.
 - **Patch engine internals** — how `MyGlobalPatternSearch` / `MyGlobalPatternPatch`
