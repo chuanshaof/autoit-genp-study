@@ -288,6 +288,15 @@ but **non-droppable** helper: rarely used, yet essential wherever it applies.
 
 ## CCX Start version pinning (not a byte-patch)
 
+> **[CCX-REMOVED] in this build.** The pinning (creation) path and the 23.4 MB bundled
+> `resources\ccx-start-10.8.1.zip` were removed as a learning exercise — the zip was deleted
+> and `_EnsureCcxStartPinned()` (+ helpers `_CcxFolderVer`/`_CcxVerCmp`/`_CcxRestoreFolderBaks`)
+> wrapped in `#cs/#ce [CCX-REMOVED]` in `src/AdobeApps.au3`; the Search-hook call in
+> `src/Patch.au3` is commented. **Kept live:** `_RestoreCcxStart()` + `_CcxExtDir()` (the
+> *cleanup* path, run by Final Clean Check — restores an already-pinned machine, needs no zip)
+> and the unrelated `config.ini` entries that byte-patch ccx.start's `.js` files. The
+> explanation below documents how it *worked*.
+
 `com.adobe.ccx.start` is a **UXP extension** shared by all Adobe apps, living in
 `CommonProgramFiles\Adobe\UXP\extensions`. It's the in-app Creative-Cloud **Home / account /
 sign-in ("not genuine") surface**. GenP wants one specific build — **10.8.1** — because a
@@ -413,9 +422,9 @@ needs checking the **bytes**. Verified **2026-10-12** — recorded so future-you
 | `wintrust.dll` | Microsoft WINTRUST.DLL 10.0.19041.630 | 382,712 | `8c6c791e8db8728f9a610def238c61be054bfa3de487bf6ab037130a61a3ef19` | **Patched** Microsoft DLL — invalid signature *by design* (the WinTrust bypass). A scanner (Gridinsoft) shows **0 AV detections**. Size matches GenP's own `DevOverride.au3` check (expected 382,712). MD5 `b7a38368a52ff07d875e6465bd7ee26a`. |
 
 Other `resources\` items are data/scripts, not "run" binaries: `config.ini` (settings
-seed, kept at the project root), `RemoveGudeLogs.ps1` (Gude cleanup), `ccx-start-10.8.1.zip`.
+seed, kept at the project root), `RemoveGudeLogs.ps1` (Gude cleanup).
 Deleted during the feature removals: `mitmdump.exe`, `mitmproxy_genuine_fullguard.py`,
-`main.exe` (the OVD).
+`main.exe` (the OVD), `ccx-start-10.8.1.zip` (CCX Start pinning — see [CCX-REMOVED]).
 
 Re-verify: `(Get-Item file).VersionInfo` (version, no execution) · `Get-FileHash` /
 `sha256sum` (bytes) · `virustotal.com/gui/file/<sha-256>` (identity — expect UPX clean;
@@ -573,10 +582,10 @@ Verification:
 
 Things we haven't dug into yet (edges for future-you):
 
-- **CCX Start pinning (`com.adobe.ccx.start` / `ccx-start-10.8.1.zip`)** — *mechanism now
-  understood; see [CCX Start version pinning](#ccx-start-version-pinning-not-a-byte-patch) in
-  section C.* Still open: exactly what 10.8.1 changes vs. newer builds, and whether to leave /
-  manage / remove it (deferred — 23.4 MB bundled, load-bearing in Search, shared across apps).
+- **CCX Start pinning (`com.adobe.ccx.start` / `ccx-start-10.8.1.zip`)** — *understood, then
+  **[CCX-REMOVED]** (creation path + zip deleted; cleanup kept). See
+  [CCX Start version pinning](#ccx-start-version-pinning-not-a-byte-patch) in section C.* The
+  only remaining open question is academic: exactly what 10.8.1 changes vs. newer builds.
 - **`MainGui()` internals** — exactly what tabs/controls it builds and how the
   `$idBtn...` IDs map to the layout. Not read in detail yet.
 - **Patch engine internals** — how `MyGlobalPatternSearch` / `MyGlobalPatternPatch`

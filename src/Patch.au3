@@ -95,7 +95,7 @@ Func RecursiveFileSearch($INSTARTDIR, $DEPTH, $FileCount)
 	If $DEPTH > $RecursiveFileSearch_MaxDeep Then Return
 
 	If $DEPTH = 0 Then
-		_EnsureCcxStartPinned()
+		; [CCX-REMOVED] _EnsureCcxStartPinned() ; CCX Start version-pinning removed (creation path + bundled zip). Cleanup _RestoreCcxStart() still runs in Final Clean Check.
 		UpdateHostsFile() ; [LEARN-HOSTS-ON-SEARCH] experiment: calls a Hosts.au3 func from Patch.au3 with no import; applies the Adobe blocklist at Search start. Delete this line to revert.
 	EndIf
 

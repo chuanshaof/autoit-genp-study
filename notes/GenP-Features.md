@@ -238,6 +238,7 @@ piece and reverts it.
 | `[PROXY-REMOVED]` | the whole **Proxy** tab + feature (mitmproxy), incl. the Options *trigger-capture* checkbox | `main.au3`, `Ui.au3`, `Patch.au3`, `Hosts.au3`, `Proxy.au3` (module disconnected), `build.ps1` |
 | `[SCHEDULE-HOSTS-REMOVED]` | the Hosts tab's **Schedule updates** button + its dialog | `Ui.au3`, `main.au3`, `Hosts.au3` |
 | `[OVD-REMOVED]` | the Options **Older versions download** feature (bundled `main.exe` downloader) | `Ui.au3`, `main.au3`; `resources\mitmproxy\main.exe` deleted |
+| `[CCX-REMOVED]` | **CCX Start version-pinning** (auto-run on Search): `_EnsureCcxStartPinned` + helpers, the Search-hook call, and the bundled zip | `AdobeApps.au3` (funcs in `#cs/#ce`), `Patch.au3` (hook `;`-commented); `resources\ccx-start-10.8.1.zip` **deleted** (23.4 MB). *Cleanup `_RestoreCcxStart` kept live.* |
 
 **Mechanics:** multi-line blocks use AutoIt `#cs … #ce`; single lines use `;`. To revert
 a feature: search its tag, delete the `#cs`/`#ce` marker lines, and re-enable any
@@ -255,6 +256,8 @@ those `FileInstall`s now sit inside `#cs … #ce` blocks (or a disconnected modu
 scheduled task if one exists (a prior/official build could have installed one) — removing
 the *button* that creates it doesn't make the *cleanup* pointless. (The proxy teardown in
 that same check *was* removed, but only because its function lived in the excised
-`Proxy.au3`.)
+`Proxy.au3`.) **Likewise for CCX:** the pinning *creation* path was removed, but
+`_RestoreCcxStart()` (the cleanup, run by Final Clean Check) stays live — a machine patched
+by an earlier build may already have a pinned CCX Start, and restore needs no bundled zip.
 
 For the *why*/lessons behind these removals, see [`GenP-Notes.md` → section G](GenP-Notes.md).

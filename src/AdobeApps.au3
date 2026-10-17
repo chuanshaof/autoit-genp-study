@@ -1,12 +1,12 @@
 ; =====================================================================
 ; AdobeApps.au3  -  Application module.
 ; Functions (31):
-;   - _CcxExtDir
-;   - _CcxFolderVer
-;   - _CcxVerCmp
-;   - _CcxRestoreFolderBaks
-;   - _EnsureCcxStartPinned
-;   - _RestoreCcxStart
+;   - _CcxExtDir                 (kept - used by _RestoreCcxStart cleanup)
+;   - _CcxFolderVer              [CCX-REMOVED]
+;   - _CcxVerCmp                 [CCX-REMOVED]
+;   - _CcxRestoreFolderBaks      [CCX-REMOVED]
+;   - _EnsureCcxStartPinned      [CCX-REMOVED]
+;   - _RestoreCcxStart           (kept - CCX cleanup, used by Final Clean Check; needs no zip)
 ;   - _PickExtraAdobeDrives
 ;   - _PathIsBeta
 ;   - _PathIsLightroomCloud
@@ -38,6 +38,7 @@ Func _CcxExtDir()
 	Return EnvGet("CommonProgramFiles") & "\Adobe\UXP\extensions"
 EndFunc
 
+#cs === [CCX-REMOVED] CCX Start version-pinning (creation path) + its exclusive helpers. Bundled resources\ccx-start-10.8.1.zip deleted. Cleanup _RestoreCcxStart() and _CcxExtDir() are kept below (used by Final Clean Check). ===
 Func _CcxFolderVer($sName)
 	Local $a = StringRegExp($sName, "^com\.adobe\.ccx\.start-([0-9]+(?:\.[0-9]+)*)$", 1)
 	If @error Then Return ""
@@ -126,6 +127,7 @@ Func _EnsureCcxStartPinned()
 		LogWrite(1, "CCX Start: removed stray known-good .orig leftover " & $sKG & ".orig")
 	EndIf
 EndFunc
+#ce === [CCX-REMOVED] end CCX Start version-pinning (creation) + helpers ===
 
 Func _RestoreCcxStart()
 	Local $sExt = _CcxExtDir()
