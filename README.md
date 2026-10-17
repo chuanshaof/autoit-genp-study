@@ -48,3 +48,18 @@ The real documentation lives in `notes\`:
 - [`notes\GenP-Notes.md`](notes/GenP-Notes.md) — how this project fits together.
 - [`notes\GenP-Features.md`](notes/GenP-Features.md) — the program's tabs and buttons.
 - [`notes\AutoIt-Notes.md`](notes/AutoIt-Notes.md) — AutoIt language concepts.
+
+## Working Versions
+
+Tested with 8 - ccx_removed.exe
+- Lightroom Classic 15.5.1 (Requires Creative Cloud login first)
+- Photoshop 27.11 (No login required)
+- CCX-10.15.0
+- Creative Cloud 6.11.0.478.6
+
+## Steps to recreate
+
+1. For LRC, make sure Creative Cloud was launched
+2. Search & patch (host & NGLFirewall will be automatically applied)
+3. Enable Firewall
+4. Remove AGS (If you have it)
