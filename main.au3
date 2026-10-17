@@ -311,7 +311,7 @@ Global $bShowLaunchBar = Number(IniRead($sINIPath, "Options", "ShowLaunchBar", "
 Global $g_iAppsBarX = Number(IniRead($sINIPath, "Options", "LaunchBarX", "-1"))
 Global $g_iAppsBarY    = Number(IniRead($sINIPath, "Options", "LaunchBarY", "-1"))
 Global $g_sToolbarApps = IniRead($patchStatesINI, "Info", "ToolbarApps", "")
-Global $bEnableNGLFirewall = IniRead($sINIPath, "Options", "NGLFirewall", "0")
+Global $bEnableNGLFirewall = IniRead($sINIPath, "Options", "NGLFirewall", "1")
 
 Global $g_aNGLRelativePaths[9] = [ _
 		"Common Files\Adobe\Adobe Desktop Common\NGL\adobe_licensing_wf.exe", _
