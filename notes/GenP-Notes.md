@@ -37,7 +37,7 @@ pick it back up. For language concepts, see `AutoIt-Notes.md`.
   - [What we changed, and how it was verified](#what-we-changed-and-how-it-was-verified)
   - [Deferred (not done)](#deferred-not-done)
   - [Open questions / not yet understood](#open-questions--not-yet-understood)
-- **G. Learning modifications (feature removals)**
+- **G. Learning modifications (feature removals & default changes)**
   - [Lessons from removing a feature](#lessons-from-removing-a-feature)
 
 ---
@@ -546,7 +546,7 @@ Things we haven't dug into yet (edges for future-you):
 
 ---
 
-# G. Learning modifications (feature removals)
+# G. Learning modifications (feature removals & default changes)
 
 The working copy has had features **switched off as learning exercises** (removals, not
 improvements) — by commenting, never deleting, each tagged for search. The **inventory**
@@ -571,3 +571,36 @@ the reusable lessons.
    find and wrap by hand.
 5. **Naive text scan ≠ compiler.** `build.ps1`'s `FileInstall` pre-check was made
    `#include`-aware so it stops demanding resources for disconnected code.
+
+## Changing an option's default (NGL Firewall → default ON)
+
+Flipped **Enable NGL Firewall rule** from off to on by default (a default change, not a
+removal) — a good lens on how any checkbox option actually resolves.
+
+**An option leads a triple life** — the checkbox is only the *visual*; the real value is a
+variable; config.ini is the *persistent store*:
+
+```
+LOAD:  config.ini  →  $bEnableNGLFirewall  →  checkbox   (startup, then GUI build)
+SAVE:  checkbox     →  $bEnableNGLFirewall  →  config.ini (Save Options, the mirror image)
+```
+
+The patch logic reads the **variable**, never the checkbox. The checkbox's checked state
+just mirrors the variable (`If $bEnableNGLFirewall = 1 Then GUICtrlSetState(...)` in
+`Ui.au3`).
+
+**To change a default, touch only where the *value* is sourced — not the UI:**
+1. `config.ini` `[Options] NGLFirewall=0 → 1` — **the real default** (the value that loads).
+2. `main.au3` `IniRead(..., "NGLFirewall", "0" → "1")` — only a **fallback**, consulted
+   *solely* if the key is missing from config.ini. Redundant while the line exists; earns
+   its keep only if that line is deleted.
+
+Did **not** touch `Ui.au3` (the checkbox), the click handler, or the save logic: the box
+auto-shows checked because it mirrors the now-`1` variable; the handler/save only run on
+user action, not at startup, so they don't set the default.
+
+**Resolution order (most authoritative first):** config.ini value → bundled config.ini (if
+the file is missing entirely, `FileInstall` extracts it) → `IniRead` fallback (if only the
+key is missing). Last **Save Options** wins, so unchecking + saving overwrites this default.
+
+Same lifecycle governs every option (FindACC, Good patch, Clear caches, …).

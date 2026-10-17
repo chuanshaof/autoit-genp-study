@@ -71,7 +71,7 @@ appears when something is unsaved). Grouped into boxes:
 - *Show app launch toolbar* — show the floating quick-launch bar for patched apps.
 - *Older versions download* — **[REMOVED — `[OVD-REMOVED]`]** enable older-version download behavior. *(Launched the bundled `main.exe` downloader.)*
 - *Clear license caches after patching* — wipe Adobe license caches when a patch finishes.
-- *Enable NGL Firewall rule* — auto-apply the NGL network-block rule as part of patching.
+- *Enable NGL Firewall rule* — auto-apply the NGL network-block rule as part of patching. **[DEFAULT CHANGED — now ON in this build]** Stock GenP ships this **off**; here it defaults to checked (`NGLFirewall=1`). See [`GenP-Notes.md` → "Changing an option's default"](GenP-Notes.md). It adds Windows Firewall *outbound block* rules for the 3 NGL licensing helpers (`adobe_licensing_wf.exe`, `_wf_helper.exe`, `_helper.exe`); needs admin, and with a third-party firewall it opens a manual-step gate during patch.
 
 **Hosts Options**
 - *Hosts List URL* — the blocklist URL the Hosts tab pulls from (editable).
