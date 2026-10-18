@@ -57,14 +57,13 @@ The real documentation lives in `notes\`:
 
 Tested with 8 - ccx_removed.exe
 - Lightroom Classic 15.5.1 (Login required)
-- Acrobat 26.1 (Login required)
 - Photoshop 27.11 (Logout required)
 - Illustrator 30.8.2 (Logout required)
 - After Effects 26.5 (Logout required)
 - CCX-10.15.0
 - Creative Cloud 6.11.0.478.6
 
-NOTE: Lightroom CC will never work despite the version!
+NOTE: Lightroom CC & Acrobat will never work despite the version!
 
 ## Steps to recreate
 
